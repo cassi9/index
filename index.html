@@ -1,0 +1,2674 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>index</title>
+<meta name="description" content="Ruleta de casino con modo Roguelike: objetivos, habilidades y filtro CRT.">
+<meta name="theme-color" content="#072a1e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&amp;family=Work+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #0e4331;
+    --felt-deep: #072a1e;
+    --felt-light: #145a41;
+    --gold: #c9a227;
+    --gold-bright: #e3c04f;
+    --cream: #f2ead6;
+    --cream-dim: #cfc4a3;
+    --red: #9c2b26;
+    --red-bright: #c0392b;
+    --black-chip: #1c1c1c;
+    --green-chip: #1e6b4f;
+    --panel: rgba(0,0,0,0.22);
+    --panel-border: rgba(201,162,39,0.35);
+    --shadow: rgba(0,0,0,0.5);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --felt: #1a5c42; --felt-deep: #0f3d2c; --felt-light: #227050;
+      --panel: rgba(255,255,255,0.08); --shadow: rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --felt: #0e4331; --felt-deep: #072a1e; --felt-light: #145a41;
+    --panel: rgba(0,0,0,0.22); --shadow: rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; min-height: 100vh;
+    background-color: #0a3a22;
+    background-image:
+      radial-gradient(circle at 22% 26%, rgba(3, 20, 12, 0.92) 0%, rgba(3, 20, 12, 0.92) 15%, transparent 34%),
+      radial-gradient(circle at 80% 18%, rgba(3, 20, 12, 0.85) 0%, rgba(3, 20, 12, 0.85) 11%, transparent 28%),
+      radial-gradient(circle at 72% 62%, rgba(3, 20, 12, 0.88) 0%, rgba(3, 20, 12, 0.88) 13%, transparent 30%),
+      radial-gradient(circle at 15% 78%, rgba(3, 20, 12, 0.8) 0%, rgba(3, 20, 12, 0.8) 10%, transparent 26%);
+    background-size: 260% 260%;
+    animation: liquidShift 46s ease-in-out infinite alternate;
+    color: var(--cream);
+    font-family: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; justify-content: center;
+    padding: 34px 16px 48px;
+  }
+
+  @keyframes liquidShift {
+    0%   { background-position: 0% 0%; }
+    50%  { background-position: 90% 70%; }
+    100% { background-position: 15% 100%; }
+  }
+
+  main { width: 100%; max-width: 460px; }
+
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(26px, 7vw, 34px);
+    margin: 0 0 26px;
+    text-align: center;
+    letter-spacing: 0.01em;
+    color: var(--gold-bright);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+
+  .wheel-wrap {
+    position: relative;
+    width: min(320px, 78vw);
+    aspect-ratio: 1 / 1;
+    margin: 18px auto 28px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .wheel-wrap:hover { transform: scale(1.015); }
+  .wheel-wrap:active { transform: scale(0.99); }
+
+  .rim {
+    position: absolute;
+    inset: -15px;
+    border-radius: 50%;
+    z-index: 0;
+    box-shadow: 0 16px 32px var(--shadow), inset 0 0 0 3px rgba(0,0,0,0.4), inset 0 2px 6px rgba(255,255,255,0.08);
+  }
+  .rim svg { width: 100%; height: 100%; display: block; }
+
+  .wheel {
+    position: relative;
+    z-index: 1;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    box-shadow: 0 8px 18px var(--shadow), inset 0 0 0 1px rgba(0,0,0,0.35);
+    overflow: hidden;
+    will-change: transform;
+  }
+  .wheel svg { width: 100%; height: 100%; display: block; }
+
+  .ball-layer {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  }
+  .ball {
+    position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 28%, #ffffff, #d4d4d4 55%, #8f8f8f 100%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  }
+
+  .mode-corner {
+    position: fixed;
+    top: 14px;
+    left: 54px;
+    z-index: 20;
+    display: flex;
+    gap: 6px;
+    background: rgba(30, 107, 79, 0.25);
+    border: 1px solid rgba(30, 107, 79, 0.7);
+    border-radius: 8px;
+    padding: 4px;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+  .mode-indicator {
+    position: absolute;
+    top: 4px; left: 4px;
+    width: var(--ind-w, 0px);
+    height: var(--ind-h, 0px);
+    border-radius: 5px;
+    background: var(--green-chip);
+    transform: translateX(var(--ind-x, 0px));
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.35s ease, box-shadow 0.35s ease;
+    z-index: 0;
+  }
+  body.mode-roguelike .mode-indicator {
+    background: var(--red-bright);
+    box-shadow: 0 0 14px 3px rgba(224, 60, 43, 0.75), 0 0 4px 1px rgba(255, 130, 110, 0.6);
+  }
+  .mode-btn {
+    position: relative;
+    z-index: 1;
+    font-family: "Work Sans", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cream-dim);
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .mode-btn:hover { color: var(--cream); }
+  .mode-btn.active { color: var(--cream); }
+
+  body.mode-roguelike .mode-corner {
+    background: rgba(192, 57, 43, 0.25);
+    border-color: rgba(192, 57, 43, 0.7);
+  }
+  body.mode-roguelike {
+    background-color: #5c1018;
+    background-image:
+      radial-gradient(circle at 22% 26%, rgba(20, 2, 3, 0.92) 0%, rgba(20, 2, 3, 0.92) 15%, transparent 34%),
+      radial-gradient(circle at 80% 18%, rgba(20, 2, 3, 0.85) 0%, rgba(20, 2, 3, 0.85) 11%, transparent 28%),
+      radial-gradient(circle at 72% 62%, rgba(20, 2, 3, 0.88) 0%, rgba(20, 2, 3, 0.88) 13%, transparent 30%),
+      radial-gradient(circle at 15% 78%, rgba(20, 2, 3, 0.8) 0%, rgba(20, 2, 3, 0.8) 10%, transparent 26%);
+    background-size: 260% 260%;
+    transition: background-color 0.4s ease;
+  }
+
+  body.mode-roguelike .roulette-view { display: none; }
+
+  .roguelike-roulette-view {
+    display: none;
+    --gold: #d9552f;
+    --gold-bright: #ff7a49;
+    --cream: #f5e6df;
+    --cream-dim: #e0b9a8;
+    --panel: rgba(40, 6, 6, 0.38);
+    --panel-border: rgba(217, 85, 47, 0.4);
+  }
+  body.mode-roguelike .roguelike-roulette-view { display: block; }
+
+  @keyframes modePulse {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.12); }
+    60%  { transform: scale(0.96); }
+    100% { transform: scale(1); }
+  }
+  .mode-corner.pulsing { animation: modePulse 0.4s ease; }
+
+  .mode-btn.active { animation: none; }
+
+  .balance-row {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .balance-corner {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 16px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .balance-value {
+    color: var(--gold-bright);
+    font-weight: 700;
+    outline: none;
+    border-bottom: 1px solid transparent;
+    padding: 0 2px;
+    transition: border-color 0.15s ease;
+  }
+  .balance-value:hover, .balance-value:focus { border-color: var(--gold); }
+  /* saldo de Roguelike: solo lectura (sin subrayado ni cursor de texto) */
+  #balanceValueRg { cursor: default; -webkit-user-select: none; user-select: none; }
+  #balanceValueRg:hover, #balanceValueRg:focus { border-color: transparent; }
+  .balance-suffix { color: var(--gold-bright); font-weight: 700; }
+  /* Roguelike: saldo y botón de reinicio más grandes (la barra sube 2 px para seguir centrada con el selector) */
+  .roguelike-roulette-view .balance-row { top: 12px; gap: 10px; }
+  .roguelike-roulette-view .balance-corner { font-size: 20px; padding: 7px 14px; border-radius: 10px; }
+  /* el saldo se alarga hacia la izquierda: saldo + hueco + reinicio miden lo mismo que el módulo de objetivos (204 px) */
+  .roguelike-roulette-view .balance-corner { text-align: center; box-sizing: border-box; min-width: max(0px, calc(100vw - 278px)); }
+  @media (min-width: 560px) {
+    .roguelike-roulette-view .balance-corner { min-width: 152px; }
+  }
+  .roguelike-roulette-view .btn-reset { width: 42px; height: 42px; border-radius: 10px; }
+  .roguelike-roulette-view .btn-reset svg { width: 21px; height: 21px; }
+  .btn-lock, .btn-reset, .btn-settings {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: #8a8f96;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-lock svg, .btn-reset svg, .btn-settings svg { width: 16px; height: 16px; display: block; }
+  .btn-lock:hover, .btn-reset:hover, .btn-settings:hover { color: #c3c7cd; border-color: #6b6f76; }
+  .btn-lock.locked { color: #dfe2e6; border-color: #8a8f96; background: rgba(255, 255, 255, 0.06); }
+  .btn-reset { color: #b56b5d; }
+  .btn-settings { position: fixed; top: 16px; left: 14px; z-index: 20; }
+
+  /* Colores por modo: verde en Ruleta, rojo en Roguelike (mismos tonos que el selector de modo) */
+  :root {
+    --mode-bg: rgba(30, 107, 79, 0.25);
+    --mode-border: rgba(30, 107, 79, 0.7);
+    --mode-icon: #8fd3b0;
+    --mode-icon-hover: #c2f0d9;
+  }
+  body.mode-roguelike {
+    --mode-bg: rgba(192, 57, 43, 0.25);
+    --mode-border: rgba(192, 57, 43, 0.7);
+    --mode-icon: #e08a76;
+    --mode-icon-hover: #f4b3a3;
+  }
+  .btn-settings {
+    background: var(--mode-bg);
+    border-color: var(--mode-border);
+    color: var(--mode-icon);
+    transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+  }
+  .btn-settings:hover { background: var(--mode-bg); border-color: var(--mode-icon); color: var(--mode-icon-hover); }
+
+  /* Saldo y candado de la ruleta normal en verde */
+  .roulette-view .balance-corner { background: var(--mode-bg); border-color: var(--mode-border); }
+  .roulette-view .btn-lock { background: var(--mode-bg); border-color: var(--mode-border); color: var(--mode-icon); }
+  .roulette-view .btn-lock:hover { background: var(--mode-bg); border-color: var(--mode-icon); color: var(--mode-icon-hover); }
+  .roulette-view .btn-lock.locked { background: rgba(30, 107, 79, 0.55); border-color: var(--mode-icon); color: var(--mode-icon-hover); }
+  .btn-reset:hover { color: #e08a76; border-color: #8d4d40; background: rgba(192, 57, 43, 0.08); }
+
+  .balance {
+    text-align: center;
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 24px;
+    margin-bottom: 22px;
+    color: var(--gold-bright);
+    font-weight: 700;
+  }
+
+  .mats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .mat {
+    position: relative;
+    border-radius: 12px;
+    min-height: 132px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.35);
+    cursor: pointer;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 8px;
+    clip-path: inset(-10000px 0 0 0);
+    transition: filter 0.15s ease;
+  }
+  .mat:hover { filter: brightness(1.12); }
+  .mat.disabled { cursor: not-allowed; }
+
+  .mat-rojo  { background: radial-gradient(circle at 50% 30%, #b8352c, var(--red) 75%); }
+  .mat-negro { background: radial-gradient(circle at 50% 30%, #2e2e2e, var(--black-chip) 75%); }
+  .mat-verde { background: radial-gradient(circle at 50% 30%, #24855f, var(--green-chip) 75%); }
+
+  .mat-stack {
+    position: relative;
+    width: 100%;
+    height: 104px;
+  }
+  .mini-chip {
+    position: absolute;
+    left: 50%;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    transform: translateX(-50%);
+  }
+
+  .chip, .mini-chip {
+    --tick-color: rgba(255,255,255,0.85);
+    background: var(--chip-color);
+    box-shadow: 0 3px 6px var(--shadow), inset 0 0 0 1px rgba(255,255,255,0.12);
+  }
+  .chip::before, .mini-chip::before {
+    content: "";
+    position: absolute; inset: 0; border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, var(--tick-color) 0deg 4deg, transparent 4deg 45deg);
+  }
+  .chip-face, .mini-chip::after {
+    content: "";
+    position: absolute; inset: 14%;
+    border-radius: 50%;
+    background: linear-gradient(160deg, rgba(255,255,255,0.4), rgba(0,0,0,0.3)), var(--chip-color);
+    box-shadow: inset 0 2px 2px rgba(255,255,255,0.45), inset 0 -3px 4px rgba(0,0,0,0.4);
+  }
+  .chip-face {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px; color: #fff;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.55);
+  }
+
+  .chip[data-value="10"]  { --chip-color: #efe9db; --tick-color: rgba(60,45,20,0.3); }
+  .chip[data-value="25"]  { --chip-color: var(--green-chip); }
+  .chip[data-value="50"]  { --chip-color: #1f4e8c; }
+  .chip[data-value="250"] { --chip-color: var(--black-chip); }
+  .chip[data-value="500"] { --chip-color: #6b2d8c; }
+  .chip[data-value="10000"] { --chip-color: #e07b1f; }
+  .chip[data-value="1000000"] { --chip-color: #c2185b; }
+  .chip[data-value="500000000"] { --chip-color: #b5121b; }
+  .chip[data-value="1000000000000"] { --chip-color: #0f8b8d; }
+
+  .mini-chip.denom-10  { --chip-color: #efe9db; --tick-color: rgba(60,45,20,0.3); }
+  .mini-chip.denom-25  { --chip-color: var(--green-chip); }
+  .mini-chip.denom-50  { --chip-color: #1f4e8c; }
+  .mini-chip.denom-250 { --chip-color: var(--black-chip); }
+  .mini-chip.denom-500 { --chip-color: #6b2d8c; }
+  .mini-chip.denom-10000 { --chip-color: #e07b1f; }
+  .mini-chip.denom-1000000 { --chip-color: #c2185b; }
+  .mini-chip.denom-500000000 { --chip-color: #b5121b; }
+  .mini-chip.denom-1000000000000 { --chip-color: #0f8b8d; }
+
+  .chips {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    row-gap: 16px;
+    column-gap: 10px;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  #btnClear, #btnAllIn, #btnClearRg, #btnAllInRg { position: absolute; }
+  .chip {
+    position: relative;
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, outline-color 0.15s ease;
+    outline: 3px solid transparent;
+    outline-offset: 3px;
+  }
+  .chip:hover { transform: translateY(-3px); }
+  .chip.selected { outline-color: var(--gold-bright); transform: translateY(-4px) scale(1.05); }
+  .chip:disabled { cursor: not-allowed; transform: none; }
+
+  .btn-clear, .btn-allin {
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--cream);
+    border: 2px solid #000;
+    font-family: "Work Sans", sans-serif;
+    font-weight: 600; font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .btn-clear:hover:not(:disabled), .btn-allin:hover:not(:disabled) { filter: brightness(1.25); }
+  .btn-clear:disabled, .btn-allin:disabled { cursor: not-allowed; opacity: 0.5; }
+
+  @media (max-width: 360px) {
+    .mats { gap: 6px; }
+    .chips { gap: 8px; }
+  }
+
+  #liquidBg {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    display: block;
+  }
+  html.gl-on body,
+  html.gl-on body.mode-roguelike { background-image: none; animation: none; }
+
+  /* ---------- AJUSTES: desplegable con slider de filtro CRT ---------- */
+  .btn-settings.open { border-color: var(--mode-icon); color: var(--mode-icon-hover); }
+  .btn-settings svg { transition: transform 0.35s ease; }
+  .btn-settings.open svg { transform: rotate(60deg); }
+
+  .crt-drop {
+    position: fixed;
+    z-index: 20;
+    left: 14px;
+    top: var(--crt-top, 58px);
+    width: var(--crt-span, 190px);   /* = botón de ajustes + selector Ruleta/Roguelike (lo calcula el JS) */
+    height: 32px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: var(--mode-bg);
+    border: 1px solid var(--mode-border);
+    overflow: hidden;
+    color: var(--cream, #f2ead6);
+    font-family: "Work Sans", system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    user-select: none;
+    -webkit-user-select: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-8px) scaleY(0.85);
+    transform-origin: top left;
+    transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.28s,
+                background 0.3s ease, border-color 0.3s ease;
+  }
+  .crt-drop.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s,
+                background 0.3s ease, border-color 0.3s ease;
+  }
+  .crt-drop:focus-within { border-color: var(--mode-icon); }
+  .crt-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    width: calc(var(--pct, 0) * 1%);
+    background: var(--mode-border);
+    border-right: 2px solid var(--mode-icon);
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+  .crt-fill.zero { border-right-color: transparent; }
+  .crt-label, .crt-value {
+    position: absolute; top: 0; bottom: 0;
+    display: flex; align-items: center;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+  .crt-label { left: 10px; }
+  .crt-value { right: 10px; font-variant-numeric: tabular-nums; color: var(--mode-icon-hover); }
+  .crt-drop input[type="range"] {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    margin: 0; padding: 0;
+    opacity: 0;
+    cursor: ew-resize;
+    -webkit-appearance: none; appearance: none;
+    touch-action: none;
+  }
+
+  /* Reiniciar run: hay que mantener pulsado (el botón se llena de abajo arriba y la flecha da una vuelta) */
+  .btn-reset { position: relative; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .btn-reset::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: rgba(255, 106, 66, 0.6);
+    transform: scaleY(var(--hold, 0)); transform-origin: bottom; transition: transform 0.25s ease;
+  }
+  .btn-reset svg { position: relative; z-index: 1; transform: rotate(calc(var(--hold, 0) * 360deg)); transition: transform 0.25s ease; }
+  .btn-reset.holding::before, .btn-reset.holding svg { transition: none; }
+  .btn-reset.holding { border-color: #ff9a63; color: #ffd2bf; }
+  .btn-reset.done { animation: resetDone 0.5s ease; }
+  @keyframes resetDone { from { box-shadow: 0 0 0 0 rgba(255, 122, 73, 0.8); } to { box-shadow: 0 0 0 14px rgba(255, 122, 73, 0); } }
+
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); padding: 9px 14px; border-radius: 10px; background: rgba(34, 5, 6, 0.95); border: 1px solid #ff3b5c; color: #fff3ec; font: 600 13px "Work Sans", system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease; z-index: 30; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- OBJETIVOS (solo modo Roguelike) ---------- */
+  .goal-hud {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 6px 10px 8px;
+    border-radius: 10px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--cream);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .goal-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .goal-kicker { font-size: 9.5px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cream-dim); }
+  .goal-spins { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 600; color: var(--cream-dim); }
+  .goal-pips { display: inline-flex; gap: 4px; }
+  .goal-pips i {
+    width: 7px; height: 7px; border-radius: 50%;
+    border: 1.5px solid var(--gold);
+    background: transparent;
+    transition: background 0.25s ease, transform 0.25s ease, opacity 0.25s ease;
+    opacity: 0.55;
+  }
+  .goal-pips i.on { background: var(--gold-bright); border-color: var(--gold-bright); opacity: 1; box-shadow: 0 0 5px rgba(255, 122, 73, 0.55); }
+  .goal-progress { display: block; margin-top: 2px; font-size: 14px; font-weight: 700; color: var(--cream); font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .goal-bar { margin-top: 4px; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+  .goal-fill {
+    height: 100%; width: 0%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #d9552f, #ff9a63);
+    transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .goal-hud.last-spin .goal-pips i.on { background: #ff4d3d; border-color: #ff4d3d; }
+  .goal-hud.achieved { border-color: #7fe0a8; box-shadow: 0 0 14px rgba(127, 224, 168, 0.35); }
+  .goal-hud.achieved .goal-fill { background: linear-gradient(90deg, #2e9d6b, #7fe0a8); }
+  .goal-hud.new-goal { animation: goalIn 0.5s ease; }
+  @keyframes goalIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 820px) {
+    #wheelWrapRg { margin-top: 121px; }
+  }
+
+  .goal-stack { position: fixed; top: 64px; right: 14px; z-index: 14; width: min(204px, calc(100vw - 28px)); }
+  .skills-btn {
+    display: block; width: 100%; margin-top: 5px; padding: 3px 10px;
+    border-radius: 8px; border: 1px solid var(--panel-border); background: var(--panel);
+    color: var(--cream); font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer;
+  }
+  .skills-btn:hover { border-color: var(--gold); }
+  .skills-btn b { color: var(--gold-bright); margin-left: 4px; }
+  .skills-list { margin-top: 4px; max-height: 46vh; overflow-y: auto; border-radius: 8px; border: 1px solid var(--panel-border); background: rgba(34, 5, 6, 0.96); }
+  .skills-list[hidden] { display: none; }
+  .skill-row { display: flex; gap: 8px; padding: 6px 9px; font-size: 11.5px; line-height: 1.3; color: var(--cream); border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+  .skill-row:last-child { border-bottom: 0; }
+  .skill-row i { font-style: normal; font-size: 16px; }
+  .skill-row b { display: block; font-size: 12px; }
+  .skill-row.rare b { color: #ff6a55; } .skill-row.cursed b { color: #ff3b5c; } .skill-row.common b { color: #e08a76; }
+  .skill-empty { padding: 9px; font-size: 12px; color: var(--cream-dim); text-align: center; }
+
+  .pick-modal {
+    position: fixed; inset: 0; z-index: 16; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    padding: 20px; background: rgba(4, 0, 0, 0.88); animation: goalFade 0.3s ease;
+  }
+  .pick-modal[hidden] { display: none; }
+  .pick-title { font-family: "Fraunces", Georgia, serif; font-size: 24px; font-weight: 700; color: var(--gold-bright); }
+  .pick-cards { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+  .skill-card {
+    width: 150px; min-height: 210px; padding: 14px 11px; box-sizing: border-box; text-align: center; cursor: pointer;
+    border-radius: 14px; color: #fff3ec; border: 2px solid var(--c2); background: linear-gradient(160deg, var(--c1), #120203);
+    box-shadow: 0 0 18px var(--glow); transition: transform 0.18s ease, box-shadow 0.18s ease; font: inherit;
+    animation: goalPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+  }
+  .skill-card:nth-child(2) { animation-delay: 0.08s; } .skill-card:nth-child(3) { animation-delay: 0.16s; }
+  .skill-card:hover { transform: translateY(-6px) scale(1.04); box-shadow: 0 0 30px var(--glow); }
+  .skill-card.common { --c1: #5a1414; --c2: #7a2222; --glow: rgba(122, 34, 34, 0.5); }
+  .skill-card.rare   { --c1: #a3201a; --c2: #ff4a38; --glow: rgba(255, 74, 56, 0.55); }
+  .skill-card.cursed { --c1: #8c0a2a; --c2: #ff1747; --glow: rgba(220, 20, 60, 0.75); }
+  .skill-card .ic { font-size: 44px; line-height: 1.2; }
+  .skill-card .nm { margin: 6px 0 2px; font-family: "Fraunces", Georgia, serif; font-size: 17px; font-weight: 700; }
+  .skill-card .rr { font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.8; }
+  .skill-card .up { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 9px; font-size: 9.5px; font-weight: 700; background: #ffd27a; color: #3a1500; }
+  .skill-card .tx { margin-top: 9px; font-size: 12.5px; line-height: 1.4; }
+
+  .goal-modal {
+    position: fixed; inset: 0; z-index: 15;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    background: rgba(12, 0, 0, 0.58);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    animation: goalFade 0.25s ease;
+  }
+  .goal-modal[hidden] { display: none; }
+  @keyframes goalFade { from { opacity: 0; } to { opacity: 1; } }
+  .goal-card {
+    width: min(340px, 100%);
+    padding: 22px 22px 20px;
+    border-radius: 16px;
+    text-align: center;
+    background: rgba(34, 5, 6, 0.94);
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    color: var(--cream);
+    animation: goalPop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  @keyframes goalPop { from { opacity: 0; transform: scale(0.92) translateY(8px); } to { opacity: 1; transform: none; } }
+  .goal-card.win  { border-color: #7fe0a8; }
+  .goal-card.lose { border-color: #ff4d3d; }
+  .goal-card-kicker { font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--cream-dim); }
+  .goal-card h2 { margin: 6px 0 8px; font-family: "Fraunces", Georgia, serif; font-size: 25px; line-height: 1.15; color: var(--gold-bright); }
+  .goal-card.win h2 { color: #8fe9b3; }
+  .goal-card p { margin: 0 0 14px; font-size: 14px; line-height: 1.45; color: var(--cream); }
+  .goal-reward {
+    margin: 0 0 16px; padding: 12px 10px;
+    border-radius: 10px;
+    border: 1px dashed var(--panel-border);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .goal-reward[hidden] { display: none; }
+  .goal-reward-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cream-dim); }
+  .goal-reward-name { margin-top: 3px; font-size: 15px; font-weight: 600; color: var(--gold-bright); }
+  .goal-btn {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 9px;
+    border: 1px solid #ff7a49;
+    background: rgba(192, 57, 43, 0.55);
+    color: #fff3ec;
+    font: inherit; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .goal-btn:hover { background: rgba(217, 85, 47, 0.75); }
+  .goal-btn:active { transform: scale(0.98); }
+  .goal-card.win .goal-btn { border-color: #7fe0a8; background: rgba(30, 107, 79, 0.65); }
+  .goal-card.win .goal-btn:hover { background: rgba(46, 157, 107, 0.8); }
+
+  /* ---------- AJUSTES: desplegable de estadísticas (bajo el slider de CRT) ---------- */
+  .stats-drop {
+    position: fixed; z-index: 20; left: 14px; top: calc(var(--crt-top, 58px) + 38px);
+    width: var(--crt-span, 190px);
+    opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-8px);
+    transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.28s;
+  }
+  .stats-drop.open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s; }
+  .stats-btn {
+    display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; height: 28px; padding: 0 10px;
+    border-radius: 8px; border: 1px solid var(--mode-border); background: var(--mode-bg); color: var(--cream, #f2ead6);
+    font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+  .stats-btn:hover { border-color: var(--mode-icon); }
+  .stats-btn .chev { color: var(--mode-icon-hover); transition: transform 0.25s ease; }
+  .stats-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .stats-list { margin-top: 4px; border-radius: 8px; border: 1px solid var(--mode-border); background: rgba(8, 8, 8, 0.82); overflow: hidden; }
+  .stats-list[hidden] { display: none; }
+  .stat-row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; font-size: 12px; color: var(--cream, #f2ead6); border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+  .stat-row:last-child { border-bottom: 0; }
+  .stat-row b { color: var(--mode-icon-hover); font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* ---------- FILTRO CRT estilo Balatro (0 = juego tal cual, 100 = máximo) ----------
+     Todo el juego vive dentro de #crtFrame (ocupa la ventana). Con el filtro activo se le aplica un
+     filtro SVG (curvatura mínima + aberración RGB + bloom suave). Encima van las scanlines, el grano
+     y un viñeteado casi imperceptible. */
+  html, body { height: 100%; }
+  body { min-height: 0; overflow: hidden; display: block; padding: 0; }
+  #crtFrame { position: fixed; inset: 0; overflow: hidden; }
+  #crtScroll {
+    position: absolute; inset: 0;
+    overflow-x: hidden; overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 34px 16px 48px;
+  }
+  html.crt-on #crtFrame { filter: url(#crtFilter); }
+
+  .crt-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  html.crt-on .crt-overlay { display: block; }
+  .crt-overlay > div { position: absolute; inset: 0; }
+
+  /* líneas de escaneo finas (1 px de cada 3) con un reflejo tenue en la siguiente y una ondulación lenta de brillo */
+  .crt-scan {
+    background:
+      repeating-linear-gradient(to bottom,
+        rgba(0, 0, 0, calc(var(--crt) * 0.15)) 0 1px,
+        rgba(255, 255, 255, calc(var(--crt) * 0.03)) 1px 2px,
+        transparent 2px 3px),
+      repeating-linear-gradient(to bottom,
+        transparent 0 10px,
+        rgba(255, 255, 255, calc(var(--crt) * 0.02)) 16px,
+        transparent 22px 24px);
+  }
+  /* grano analógico muy fino (el patrón lo genera el JS) */
+  .crt-grain {
+    inset: -64px !important;
+    background-size: 128px 128px;
+    opacity: calc(var(--crt) * 0.055);
+    mix-blend-mode: overlay;
+    animation: crtGrain 0.6s steps(1, end) infinite;
+  }
+  @keyframes crtGrain {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-23px, 17px); }
+    40%  { transform: translate(31px, -12px); }
+    60%  { transform: translate(-9px, -29px); }
+    80%  { transform: translate(17px, 24px); }
+  }
+  /* viñeteado casi imperceptible: los colores no se oscurecen */
+  .crt-vignette {
+    background: radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, calc(var(--crt) * 0.2)) 100%);
+  }
+  /* esquinas de pantalla CRT ligeramente redondeadas */
+  .crt-bezel {
+    border-radius: calc(var(--crt) * 18px);
+    box-shadow: 0 0 0 120px #000;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .crt-grain { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div id="crtFrame">
+<canvas id="liquidBg" aria-hidden="true" width="652" height="569"></canvas>
+<button class="btn-settings" id="btnSettings" type="button" title="Ajustes" aria-label="Ajustes">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+</button>
+<div class="crt-drop" id="crtDrop" role="group" aria-label="Filtro CRT">
+  <div class="crt-fill zero" id="crtFill"></div>
+  <span class="crt-label">CRT</span>
+  <span class="crt-value" id="crtValue">0</span>
+  <input type="range" id="crtSlider" min="0" max="100" step="1" value="0" aria-label="Intensidad del filtro CRT">
+</div>
+<div class="stats-drop" id="statsDrop">
+  <button class="stats-btn" id="statsBtn" type="button" aria-expanded="false"><span>Estadísticas</span><span class="chev">▾</span></button>
+  <div class="stats-list" id="statsList" hidden>
+    <div class="stat-row"><span>Objetivo máx.</span><b id="stGoal">–</b></div>
+    <div class="stat-row"><span>Dinero máx.</span><b id="stMoney">–</b></div>
+    <div class="stat-row"><span>Mejor tirada</span><b id="stWin">–</b></div>
+  </div>
+</div>
+<div class="mode-corner" id="modeCorner">
+  <div class="mode-indicator" id="modeIndicator"></div>
+  <button class="mode-btn active" data-mode="ruleta">Ruleta</button>
+  <button class="mode-btn" data-mode="roguelike">Roguelike</button>
+</div>
+
+<div id="crtScroll">
+<main>
+  <div class="roguelike-roulette-view">
+
+  <div class="goal-stack">
+  <div class="goal-hud" id="goalHudRg" aria-live="polite">
+    <div class="goal-row">
+      <span class="goal-kicker" id="goalKickerRg">Objetivo 1</span>
+      <span class="goal-spins"><span class="goal-pips" id="goalPipsRg" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="goalSpinsTextRg">4 tiradas</span></span>
+    </div>
+    <span class="goal-progress" id="goalProgressRg">0 / 300 €</span>
+    <div class="goal-bar"><div class="goal-fill" id="goalFillRg"></div></div>
+  </div>
+    <button class="skills-btn" id="skillsBtnRg" type="button" aria-expanded="false">Habilidades <b id="skillsCountRg">0</b></button>
+    <div class="skills-list" id="skillsListRg" hidden></div>
+  </div>
+  <div class="pick-modal" id="pickRg" hidden>
+    <div class="pick-title">Elige una habilidad</div>
+    <div class="pick-cards" id="pickCardsRg"></div>
+  </div>
+
+  <div class="goal-modal" id="goalModalRg" hidden>
+    <div class="goal-card" id="goalCardRg" role="dialog" aria-modal="true" aria-labelledby="goalModalTitleRg">
+      <div class="goal-card-kicker" id="goalModalKickerRg"></div>
+      <h2 id="goalModalTitleRg"></h2>
+      <p id="goalModalTextRg"></p>
+      <div class="goal-reward" id="goalRewardRg" hidden>
+        <div class="goal-reward-label">Habilidad</div>
+        <div class="goal-reward-name">Próximamente</div>
+      </div>
+      <button class="goal-btn" id="goalModalBtnRg" type="button"></button>
+    </div>
+  </div>
+
+  <div class="wheel-wrap" id="wheelWrapRg">
+    <div class="rim">
+      <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="woodGradRg" x1="10%" y1="0%" x2="90%" y2="100%">
+            <stop offset="0%" stop-color="#8a3a2e"></stop>
+            <stop offset="45%" stop-color="#4a1c1c"></stop>
+            <stop offset="100%" stop-color="#6b2420"></stop>
+          </linearGradient>
+        </defs>
+        <circle cx="120" cy="120" r="118" fill="url(#woodGradRg)"></circle>
+        <circle cx="120" cy="120" r="106" fill="none" stroke="#00000035" stroke-width="1.4"></circle>
+        <circle cx="120" cy="120" r="98" fill="none" stroke="#ffffff12" stroke-width="1.2"></circle>
+        <circle cx="120" cy="120" r="90" fill="none" stroke="#00000028" stroke-width="1.4"></circle>
+        <circle cx="120" cy="120" r="83" fill="none" stroke="#ffffff10" stroke-width="1"></circle>
+      </svg>
+    </div>
+    <div class="wheel" id="wheelRg" style="transition: none; transform: rotate(0deg);">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="hubGradRg" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="#e68a6a"></stop>
+            <stop offset="60%" stop-color="#d9552f"></stop>
+            <stop offset="100%" stop-color="#7a2a12"></stop>
+          </radialGradient>
+        </defs>
+        <g id="pocketsRg"><path d="M 100.00 8.00 A 92 92 0 0 1 115.55 9.32 L 103.38 80.29 A 20 20 0 0 0 100.00 80.00 Z" fill="#1e6b4f" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 115.55 9.32 A 92 92 0 0 1 130.65 13.26 L 106.66 81.14 A 20 20 0 0 0 103.38 80.29 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 130.65 13.26 A 92 92 0 0 1 144.87 19.68 L 109.75 82.54 A 20 20 0 0 0 106.66 81.14 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 144.87 19.68 A 92 92 0 0 1 157.80 28.42 L 112.56 84.44 A 20 20 0 0 0 109.75 82.54 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 157.80 28.42 A 92 92 0 0 1 169.06 39.22 L 115.01 86.79 A 20 20 0 0 0 112.56 84.44 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 169.06 39.22 A 92 92 0 0 1 178.34 51.76 L 117.03 89.51 A 20 20 0 0 0 115.01 86.79 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 178.34 51.76 A 92 92 0 0 1 185.37 65.70 L 118.56 92.54 A 20 20 0 0 0 117.03 89.51 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 185.37 65.70 A 92 92 0 0 1 189.94 80.62 L 119.55 95.79 A 20 20 0 0 0 118.56 92.54 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 189.94 80.62 A 92 92 0 0 1 191.92 96.10 L 119.98 99.15 A 20 20 0 0 0 119.55 95.79 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 191.92 96.10 A 92 92 0 0 1 191.25 111.69 L 119.84 102.54 A 20 20 0 0 0 119.98 99.15 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 191.25 111.69 A 92 92 0 0 1 187.97 126.94 L 119.12 105.86 A 20 20 0 0 0 119.84 102.54 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 187.97 126.94 A 92 92 0 0 1 182.15 141.42 L 117.86 109.00 A 20 20 0 0 0 119.12 105.86 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 182.15 141.42 A 92 92 0 0 1 173.97 154.71 L 116.08 111.89 A 20 20 0 0 0 117.86 109.00 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 173.97 154.71 A 92 92 0 0 1 163.66 166.42 L 113.84 114.44 A 20 20 0 0 0 116.08 111.89 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 163.66 166.42 A 92 92 0 0 1 151.52 176.22 L 111.20 116.57 A 20 20 0 0 0 113.84 114.44 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 151.52 176.22 A 92 92 0 0 1 137.89 183.83 L 108.24 118.22 A 20 20 0 0 0 111.20 116.57 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 137.89 183.83 A 92 92 0 0 1 123.18 189.03 L 105.04 119.35 A 20 20 0 0 0 108.24 118.22 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 123.18 189.03 A 92 92 0 0 1 107.80 191.67 L 101.70 119.93 A 20 20 0 0 0 105.04 119.35 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 107.80 191.67 A 92 92 0 0 1 92.20 191.67 L 98.30 119.93 A 20 20 0 0 0 101.70 119.93 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 92.20 191.67 A 92 92 0 0 1 76.82 189.03 L 94.96 119.35 A 20 20 0 0 0 98.30 119.93 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 76.82 189.03 A 92 92 0 0 1 62.11 183.83 L 91.76 118.22 A 20 20 0 0 0 94.96 119.35 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 62.11 183.83 A 92 92 0 0 1 48.48 176.22 L 88.80 116.57 A 20 20 0 0 0 91.76 118.22 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 48.48 176.22 A 92 92 0 0 1 36.34 166.42 L 86.16 114.44 A 20 20 0 0 0 88.80 116.57 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 36.34 166.42 A 92 92 0 0 1 26.03 154.71 L 83.92 111.89 A 20 20 0 0 0 86.16 114.44 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 26.03 154.71 A 92 92 0 0 1 17.85 141.42 L 82.14 109.00 A 20 20 0 0 0 83.92 111.89 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 17.85 141.42 A 92 92 0 0 1 12.03 126.94 L 80.88 105.86 A 20 20 0 0 0 82.14 109.00 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 12.03 126.94 A 92 92 0 0 1 8.75 111.69 L 80.16 102.54 A 20 20 0 0 0 80.88 105.86 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 8.75 111.69 A 92 92 0 0 1 8.08 96.10 L 80.02 99.15 A 20 20 0 0 0 80.16 102.54 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 8.08 96.10 A 92 92 0 0 1 10.06 80.62 L 80.45 95.79 A 20 20 0 0 0 80.02 99.15 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 10.06 80.62 A 92 92 0 0 1 14.63 65.70 L 81.44 92.54 A 20 20 0 0 0 80.45 95.79 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 14.63 65.70 A 92 92 0 0 1 21.66 51.76 L 82.97 89.51 A 20 20 0 0 0 81.44 92.54 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 21.66 51.76 A 92 92 0 0 1 30.94 39.22 L 84.99 86.79 A 20 20 0 0 0 82.97 89.51 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 30.94 39.22 A 92 92 0 0 1 42.20 28.42 L 87.44 84.44 A 20 20 0 0 0 84.99 86.79 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 42.20 28.42 A 92 92 0 0 1 55.13 19.68 L 90.25 82.54 A 20 20 0 0 0 87.44 84.44 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 55.13 19.68 A 92 92 0 0 1 69.35 13.26 L 93.34 81.14 A 20 20 0 0 0 90.25 82.54 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 69.35 13.26 A 92 92 0 0 1 84.45 9.32 L 96.62 80.29 A 20 20 0 0 0 93.34 81.14 Z" fill="#e0473a" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 84.45 9.32 A 92 92 0 0 1 100.00 8.00 L 100.00 80.00 A 20 20 0 0 0 96.62 80.29 Z" fill="#1c1414" stroke="#d8d8d2" stroke-width="0.6"></path></g>
+        <circle cx="100" cy="100" r="92" fill="none" stroke="#d9552f" stroke-width="3.5"></circle>
+        <circle cx="100" cy="100" r="20" fill="url(#hubGradRg)" stroke="#7a2a12" stroke-width="1"></circle>
+        <circle cx="100" cy="100" r="15" fill="none" stroke="#00000022" stroke-width="0.8"></circle>
+        <circle cx="100" cy="100" r="10" fill="none" stroke="#00000022" stroke-width="0.8"></circle>
+      </svg>
+    </div>
+    <div class="ball-layer" id="ballLayerRg">
+      <span class="ball" id="ballRg" style="transform: translate(-50%, -50%) rotate(0deg) translateY(-147px); transition: none;"></span>
+    </div>
+  </div>
+
+  <div class="balance-row">
+    <div class="balance-corner" id="balanceCornerRg">
+      <span class="balance-value" id="balanceValueRg" contenteditable="false" inputmode="numeric">1000</span><span class="balance-suffix"> €</span>
+    </div>
+    <button class="btn-reset" id="btnResetRg" type="button" title="Mantén pulsado para reiniciar la run" aria-label="Reiniciar run (mantén pulsado)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
+    </button>
+  </div>
+
+  <p class="balance">
+    <span class="balance-value" id="totalBetDisplayRg" contenteditable="true" inputmode="numeric">10000</span><span class="balance-suffix"> €</span>
+  </p>
+
+  <div class="mats" id="matsRg">
+    <div class="mat mat-rojo" data-zone="rojo"><div class="mat-stack" id="stack-rojoRg"></div></div>
+    <div class="mat mat-negro" data-zone="negro"><div class="mat-stack" id="stack-negroRg"></div></div>
+    <div class="mat mat-verde" data-zone="verde"><div class="mat-stack" id="stack-verdeRg"></div></div>
+  </div>
+
+  <div class="chips" id="chipsRg">
+    <button class="chip" data-value="10"><span class="chip-face">10</span></button>
+    <button class="chip" data-value="25"><span class="chip-face">25</span></button>
+    <button class="chip" data-value="50"><span class="chip-face">50</span></button>
+    <button class="chip" data-value="250"><span class="chip-face">250</span></button>
+    <button class="chip" data-value="500"><span class="chip-face">500</span></button>
+    <button class="chip" data-value="10000" disabled=""><span class="chip-face">10K</span></button>
+    <button class="chip" data-value="1000000" disabled=""><span class="chip-face">1M</span></button>
+    <button class="btn-clear" id="btnClearRg" disabled="" style="left: 60px; top: 78px;">Limpiar</button>
+    <button class="chip" data-value="500000000" disabled=""><span class="chip-face">500M</span></button>
+    <button class="chip" data-value="1000000000000" disabled=""><span class="chip-face">1B</span></button>
+    <button class="btn-allin" id="btnAllInRg" style="left: 324px; top: 78px;">All in</button>
+  </div>
+
+  </div>
+
+  <div class="roulette-view">
+
+  <div class="wheel-wrap" id="wheelWrap">
+    <div class="rim">
+      <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="woodGrad" x1="10%" y1="0%" x2="90%" y2="100%">
+            <stop offset="0%" stop-color="#8a5a2e"></stop>
+            <stop offset="45%" stop-color="#5c3a1c"></stop>
+            <stop offset="100%" stop-color="#6b4423"></stop>
+          </linearGradient>
+        </defs>
+        <circle cx="120" cy="120" r="118" fill="url(#woodGrad)"></circle>
+        <circle cx="120" cy="120" r="106" fill="none" stroke="#00000035" stroke-width="1.4"></circle>
+        <circle cx="120" cy="120" r="98" fill="none" stroke="#ffffff12" stroke-width="1.2"></circle>
+        <circle cx="120" cy="120" r="90" fill="none" stroke="#00000028" stroke-width="1.4"></circle>
+        <circle cx="120" cy="120" r="83" fill="none" stroke="#ffffff10" stroke-width="1"></circle>
+      </svg>
+    </div>
+    <div class="wheel" id="wheel">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="hubGrad" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="#e6c463"></stop>
+            <stop offset="60%" stop-color="#c9a227"></stop>
+            <stop offset="100%" stop-color="#8a6b12"></stop>
+          </radialGradient>
+        </defs>
+        <g id="pockets"><path d="M 100.00 8.00 A 92 92 0 0 1 115.55 9.32 L 103.38 80.29 A 20 20 0 0 0 100.00 80.00 Z" fill="#1e6b4f" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 115.55 9.32 A 92 92 0 0 1 130.65 13.26 L 106.66 81.14 A 20 20 0 0 0 103.38 80.29 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 130.65 13.26 A 92 92 0 0 1 144.87 19.68 L 109.75 82.54 A 20 20 0 0 0 106.66 81.14 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 144.87 19.68 A 92 92 0 0 1 157.80 28.42 L 112.56 84.44 A 20 20 0 0 0 109.75 82.54 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 157.80 28.42 A 92 92 0 0 1 169.06 39.22 L 115.01 86.79 A 20 20 0 0 0 112.56 84.44 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 169.06 39.22 A 92 92 0 0 1 178.34 51.76 L 117.03 89.51 A 20 20 0 0 0 115.01 86.79 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 178.34 51.76 A 92 92 0 0 1 185.37 65.70 L 118.56 92.54 A 20 20 0 0 0 117.03 89.51 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 185.37 65.70 A 92 92 0 0 1 189.94 80.62 L 119.55 95.79 A 20 20 0 0 0 118.56 92.54 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 189.94 80.62 A 92 92 0 0 1 191.92 96.10 L 119.98 99.15 A 20 20 0 0 0 119.55 95.79 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 191.92 96.10 A 92 92 0 0 1 191.25 111.69 L 119.84 102.54 A 20 20 0 0 0 119.98 99.15 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 191.25 111.69 A 92 92 0 0 1 187.97 126.94 L 119.12 105.86 A 20 20 0 0 0 119.84 102.54 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 187.97 126.94 A 92 92 0 0 1 182.15 141.42 L 117.86 109.00 A 20 20 0 0 0 119.12 105.86 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 182.15 141.42 A 92 92 0 0 1 173.97 154.71 L 116.08 111.89 A 20 20 0 0 0 117.86 109.00 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 173.97 154.71 A 92 92 0 0 1 163.66 166.42 L 113.84 114.44 A 20 20 0 0 0 116.08 111.89 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 163.66 166.42 A 92 92 0 0 1 151.52 176.22 L 111.20 116.57 A 20 20 0 0 0 113.84 114.44 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 151.52 176.22 A 92 92 0 0 1 137.89 183.83 L 108.24 118.22 A 20 20 0 0 0 111.20 116.57 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 137.89 183.83 A 92 92 0 0 1 123.18 189.03 L 105.04 119.35 A 20 20 0 0 0 108.24 118.22 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 123.18 189.03 A 92 92 0 0 1 107.80 191.67 L 101.70 119.93 A 20 20 0 0 0 105.04 119.35 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 107.80 191.67 A 92 92 0 0 1 92.20 191.67 L 98.30 119.93 A 20 20 0 0 0 101.70 119.93 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 92.20 191.67 A 92 92 0 0 1 76.82 189.03 L 94.96 119.35 A 20 20 0 0 0 98.30 119.93 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 76.82 189.03 A 92 92 0 0 1 62.11 183.83 L 91.76 118.22 A 20 20 0 0 0 94.96 119.35 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 62.11 183.83 A 92 92 0 0 1 48.48 176.22 L 88.80 116.57 A 20 20 0 0 0 91.76 118.22 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 48.48 176.22 A 92 92 0 0 1 36.34 166.42 L 86.16 114.44 A 20 20 0 0 0 88.80 116.57 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 36.34 166.42 A 92 92 0 0 1 26.03 154.71 L 83.92 111.89 A 20 20 0 0 0 86.16 114.44 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 26.03 154.71 A 92 92 0 0 1 17.85 141.42 L 82.14 109.00 A 20 20 0 0 0 83.92 111.89 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 17.85 141.42 A 92 92 0 0 1 12.03 126.94 L 80.88 105.86 A 20 20 0 0 0 82.14 109.00 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 12.03 126.94 A 92 92 0 0 1 8.75 111.69 L 80.16 102.54 A 20 20 0 0 0 80.88 105.86 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 8.75 111.69 A 92 92 0 0 1 8.08 96.10 L 80.02 99.15 A 20 20 0 0 0 80.16 102.54 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 8.08 96.10 A 92 92 0 0 1 10.06 80.62 L 80.45 95.79 A 20 20 0 0 0 80.02 99.15 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 10.06 80.62 A 92 92 0 0 1 14.63 65.70 L 81.44 92.54 A 20 20 0 0 0 80.45 95.79 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 14.63 65.70 A 92 92 0 0 1 21.66 51.76 L 82.97 89.51 A 20 20 0 0 0 81.44 92.54 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 21.66 51.76 A 92 92 0 0 1 30.94 39.22 L 84.99 86.79 A 20 20 0 0 0 82.97 89.51 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 30.94 39.22 A 92 92 0 0 1 42.20 28.42 L 87.44 84.44 A 20 20 0 0 0 84.99 86.79 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 42.20 28.42 A 92 92 0 0 1 55.13 19.68 L 90.25 82.54 A 20 20 0 0 0 87.44 84.44 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 55.13 19.68 A 92 92 0 0 1 69.35 13.26 L 93.34 81.14 A 20 20 0 0 0 90.25 82.54 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 69.35 13.26 A 92 92 0 0 1 84.45 9.32 L 96.62 80.29 A 20 20 0 0 0 93.34 81.14 Z" fill="#c0392b" stroke="#d8d8d2" stroke-width="0.6"></path><path d="M 84.45 9.32 A 92 92 0 0 1 100.00 8.00 L 100.00 80.00 A 20 20 0 0 0 96.62 80.29 Z" fill="#1c1c1c" stroke="#d8d8d2" stroke-width="0.6"></path></g>
+        <circle cx="100" cy="100" r="92" fill="none" stroke="#c9a227" stroke-width="3.5"></circle>
+        <circle cx="100" cy="100" r="20" fill="url(#hubGrad)" stroke="#7a5f10" stroke-width="1"></circle>
+        <circle cx="100" cy="100" r="15" fill="none" stroke="#00000022" stroke-width="0.8"></circle>
+        <circle cx="100" cy="100" r="10" fill="none" stroke="#00000022" stroke-width="0.8"></circle>
+      </svg>
+    </div>
+    <div class="ball-layer" id="ballLayer">
+      <span class="ball" id="ball" style="transform: translate(-50%, -50%) rotate(0deg) translateY(-147px);"></span>
+    </div>
+  </div>
+
+  <div class="balance-row">
+    <div class="balance-corner" id="balanceCorner">
+      <span class="balance-value" id="balanceValue" contenteditable="true" inputmode="numeric">1000</span><span class="balance-suffix"> €</span>
+    </div>
+    <button class="btn-lock" id="btnLockBalance" type="button" title="Bloquear edición del saldo" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 7.6-1.8"></path></svg>
+    </button>
+  </div>
+
+  <p class="balance">
+    <span class="balance-value" id="totalBetDisplay" contenteditable="true" inputmode="numeric">0</span><span class="balance-suffix"> €</span>
+  </p>
+
+  <div class="mats" id="mats">
+    <div class="mat mat-rojo" data-zone="rojo"><div class="mat-stack" id="stack-rojo"></div></div>
+    <div class="mat mat-negro" data-zone="negro"><div class="mat-stack" id="stack-negro"></div></div>
+    <div class="mat mat-verde" data-zone="verde"><div class="mat-stack" id="stack-verde"></div></div>
+  </div>
+
+  <div class="chips" id="chips">
+    <button class="chip" data-value="10"><span class="chip-face">10</span></button>
+    <button class="chip" data-value="25"><span class="chip-face">25</span></button>
+    <button class="chip" data-value="50"><span class="chip-face">50</span></button>
+    <button class="chip" data-value="250"><span class="chip-face">250</span></button>
+    <button class="chip" data-value="500"><span class="chip-face">500</span></button>
+    <button class="chip" data-value="10000" disabled=""><span class="chip-face">10K</span></button>
+    <button class="chip" data-value="1000000" disabled=""><span class="chip-face">1M</span></button>
+    <button class="btn-clear" id="btnClear" disabled="" style="left: 61px; top: 78px;">Limpiar</button>
+    <button class="chip" data-value="500000000" disabled=""><span class="chip-face">500M</span></button>
+    <button class="chip" data-value="1000000000000" disabled=""><span class="chip-face">1B</span></button>
+    <button class="btn-allin" id="btnAllIn" style="left: 324.5px; top: 78px;">All in</button>
+  </div>
+
+  </div>
+</main>
+</div>
+</div>
+
+<script>
+/* ==========================================================================
+   LIQUID BACKGROUND — capa visual WebGL detrás de la interfaz
+   API pública:  background.trigger("SPIN" | "WIN" | "LOSE" | "JACKPOT" | "EVENT" | "SPIN_END")
+                 background.setMode("ruleta" | "roguelike")
+                 background.addRipple(clientX, clientY, fuerza)
+                 background.playReset(callback)  → abre el líquido hacia los lados y llama a callback al terminar
+   No toca ninguna mecánica del juego: solo dibuja en <canvas id="liquidBg">.
+   ========================================================================== */
+window.background = (function () {
+  const canvas = document.getElementById('liquidBg');
+  const noop = { supported: false, trigger() {}, setMode() {}, addRipple() {}, playReset() { return false; }, setPixelSize() {}, RESET_DURATION: 3200 };
+  if (!canvas) return noop;
+
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const MOTION = (reduceMotion ? 0.35 : 1) * 0.4;
+
+  const VERT = `
+    attribute vec2 aPos;
+    void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+  `;
+
+  const FRAG = `
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+      precision highp float;
+    #else
+      precision mediump float;
+    #endif
+
+    uniform vec2  uRes;
+    uniform float uTime;
+    uniform vec2  uMouse;      // posición suavizada (espacio de pantalla, alto = 1)
+    uniform float uMouseAmt;   // intensidad de la deformación del ratón
+    uniform float uBright;     // 1 = normal, >1 = destello, <1 = atenuado
+    uniform float uZoom;       // 1 = normal
+    uniform float uDistort;    // amplitud extra de la deformación orgánica
+    uniform vec3  uC0;         // fondo
+    uniform vec3  uC1;         // líquido oscuro
+    uniform vec3  uC2;         // líquido medio
+    uniform vec3  uC3;         // brillo
+    uniform vec4  uRip[8];     // x, y, edad, fuerza
+    uniform vec3  uVortex;     // x, y, fuerza del remolino
+    uniform float uPix;        // tamaño del píxel del fondo en píxeles del canvas (1 = sin pixelar)
+    uniform float uPart;       // 0 = normal, 1 = el líquido de color se retira del centro hacia fuera en todas direcciones
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+
+    // Ratón + ondas + remolino de la ruleta: deforman el dominio antes de evaluar las formas.
+    vec2 interact(vec2 p, float depth) {
+      if (uVortex.z > 0.001) {
+        vec2 vc = uVortex.xy / uZoom;
+        vec2 dv = p - vc;
+        float rv = length(dv);
+        float fall = exp(-rv * 1.3) * smoothstep(0.0, 0.10, rv);
+        p += vec2(-dv.y, dv.x) * (uVortex.z * fall * 0.6) * depth;
+      }
+      for (int i = 0; i < 8; i++) {
+        float s = uRip[i].w;
+        if (s > 0.001) {
+          vec2 rp = uRip[i].xy / uZoom;
+          vec2 dd = p - rp;
+          float r = length(dd);
+          float age = uRip[i].z;
+          float front = age * 0.85;
+          float env = smoothstep(front + 0.02, front - 0.22, r);
+          float wave = sin(r * 22.0 - age * 8.0) * exp(-age * 1.35) * exp(-r * 1.8) * env * s;
+          p += dd / (r + 0.001) * wave * 0.07 * depth;
+        }
+      }
+      return p;
+    }
+
+    // Campo de metabolas con deformación orgánica continua.
+    float field(vec2 p, float layer, float t) {
+      float k = 1.5 + layer * 0.55;
+      float amp = (0.22 + 0.05 * layer) * (1.0 + uDistort);
+      vec2 q = p;
+      for (int j = 0; j < 2; j++) {
+        q += amp * vec2(
+          sin(q.y * k + t * (0.55 + layer * 0.2) + layer * 3.0),
+          cos(q.x * k * 1.1 - t * (0.45 + layer * 0.15) + layer * 1.7)
+        );
+      }
+      float f = 0.0;
+      for (int i = 0; i < 5; i++) {
+        float fi = float(i);
+        vec2 c = vec2(
+          sin(t * (0.21 + 0.07 * fi) + fi * 2.1 + layer * 1.3) * 0.95,
+          cos(t * (0.17 + 0.05 * fi) + fi * 1.7 + layer * 2.3) * 0.58
+        );
+        float rad = 0.30 + 0.09 * sin(fi * 1.9 + layer + t * 0.3);
+        vec2 d = q - c;
+        f += rad * rad / (dot(d, d) + 0.0025);
+      }
+      return f;
+    }
+
+    float heightAt(vec2 p, float layer, float t) {
+      return smoothstep(0.85, 2.6, field(p, layer, t));
+    }
+
+    vec3 shadeLayer(vec3 base, vec2 p0, float layer, float depthK, float tScale) {
+      float t = uTime * tScale;
+
+      // Apertura radial orgánica: el líquido de color es empujado desde el centro hacia fuera
+      // en todas direcciones (laterales, arriba, abajo y esquinas), con un borde irregular que
+      // ondula y se enrosca mientras se mueve, como una gota de detergente en aceite.
+      float vis = 1.0;
+      float rim = 0.0;
+      vec2 pp = p0;
+      if (uPart > 0.001) {
+        vec2 hs = vec2(0.5 * uRes.x / uRes.y, 0.5) / uZoom;   // medio ancho/alto de pantalla
+        vec2 q = p0 / hs;                                      // el borde de la pantalla queda en |q| ≈ 1
+        float r = length(q);
+        float ang = atan(q.y, q.x);
+        float irregular = sin(3.14159 * clamp(uPart, 0.0, 1.0));   // más irregular en pleno movimiento
+        float w = 0.55 * sin(ang * 3.0 + uTime * 1.3 + layer * 2.0)
+                + 0.30 * sin(ang * 5.0 - uTime * 1.7 + layer * 4.0)
+                + 0.40 * sin(ang * 2.0 + uTime * 0.8 + layer);
+        float G = uPart * (0.78 + 0.05 * layer) * (1.0 + 0.24 * irregular * w);
+        // el borde arrastra el líquido en espiral (cada capa gira en sentido distinto)
+        float dirn = (mod(layer, 2.0) < 0.5) ? 1.0 : -1.0;
+        float tw = dirn * irregular * 1.25 * exp(-max(r - G, 0.0) * 2.2);
+        float rr = max(r - G, 0.0);
+        float aa = ang + tw;
+        pp = vec2(cos(aa), sin(aa)) * rr * hs;
+        vis = smoothstep(G, G + 0.16, r);
+        rim = smoothstep(G, G + 0.05, r) * (1.0 - smoothstep(G + 0.05, G + 0.22, r)) * uPart;
+      }
+
+      vec2 p = interact(pp * (0.72 + 0.26 * layer), 0.55 + 0.45 * layer);
+
+      float f = field(p, layer, t);
+      if (f < 0.78) return base;                           // fuera de las formas: nada que sombrear
+
+      float e = 0.006;
+      float H  = smoothstep(0.85, 2.6, f);
+      float hx = heightAt(p + vec2(e, 0.0), layer, t) - heightAt(p - vec2(e, 0.0), layer, t);
+      float hy = heightAt(p + vec2(0.0, e), layer, t) - heightAt(p - vec2(0.0, e), layer, t);
+      vec3 n = normalize(vec3(-hx, -hy, 2.0 * e * 2.0));
+
+      vec3 L = normalize(vec3(-0.5, 0.7, 0.6));
+      float diff = clamp(dot(n, L) * 0.5 + 0.5, 0.0, 1.0);
+      vec3 R = reflect(-L, n);
+      float spec = pow(max(R.z, 0.0), 30.0);
+
+      float mask = smoothstep(0.86, 1.04, f);
+      vec3 col = mix(uC1, uC2, H) * (0.55 + 0.65 * diff) * depthK;
+      col *= mix(0.55, 1.0, smoothstep(0.0, 0.6, H));       // borde más oscuro = volumen
+      col += uC3 * spec * (0.10 + 0.22 * max(uBright - 1.0, 0.0)) * depthK;
+      col += uC3 * rim * 0.20 * depthK;                      // borde brillante = menisco del líquido
+      return mix(base, col, mask * vis);
+    }
+
+    void main() {
+      // Pixelado: todos los píxeles de un bloque comparten la misma coordenada
+      vec2 fc = uPix > 1.0 ? (floor(gl_FragCoord.xy / uPix) + 0.5) * uPix : gl_FragCoord.xy;
+      vec2 uv = fc / uRes;
+      float aspect = uRes.x / uRes.y;
+      vec2 p = (uv - 0.5) * vec2(aspect, 1.0) / uZoom;
+
+      vec3 col = uC0 * (0.8 + 0.5 * uv.y);
+      col = shadeLayer(col, p, 0.0, 0.55, 0.85);
+      col = shadeLayer(col, p, 1.0, 0.80, 1.00);
+      col = shadeLayer(col, p, 2.0, 1.00, 1.15);
+
+      // Brillo global (victoria) / atenuación (derrota)
+      float b = uBright - 1.0;
+      col *= 1.0 + b * 0.9;
+      col += uC3 * max(b, 0.0) * 0.10;
+
+      // Viñeta y dither para evitar bandas
+      vec2 vc = uv - 0.5;
+      col *= 1.0 - dot(vc, vc) * 0.7;
+      col += (hash(fc) - 0.5) / 255.0;
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  let gl, prog, U = {}, ready = false;
+  const ripBuf = new Float32Array(32);
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn('[liquidBg] shader:', gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  function init() {
+    gl = canvas.getContext('webgl', { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance' })
+      || canvas.getContext('experimental-webgl');
+    if (!gl) return false;
+    const vs = compile(gl.VERTEX_SHADER, VERT);
+    const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+    if (!vs || !fs) return false;
+    prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.warn('[liquidBg] link:', gl.getProgramInfoLog(prog));
+      return false;
+    }
+    gl.useProgram(prog);
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+    ['uRes', 'uTime', 'uMouse', 'uMouseAmt', 'uBright', 'uZoom', 'uDistort', 'uC0', 'uC1', 'uC2', 'uC3']
+      .forEach(n => { U[n] = gl.getUniformLocation(prog, n); });
+    U.uRip = gl.getUniformLocation(prog, 'uRip[0]');
+    U.uVortex = gl.getUniformLocation(prog, 'uVortex');
+    U.uPart = gl.getUniformLocation(prog, 'uPart');
+    U.uPix = gl.getUniformLocation(prog, 'uPix');
+    resize();
+    ready = true;
+    return true;
+  }
+
+  function resize() {
+    const scale = Math.min(window.devicePixelRatio || 1, 1.5) * 0.55;
+    const w = Math.max(2, Math.round(window.innerWidth * scale));
+    const h = Math.max(2, Math.round(window.innerHeight * scale));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    if (gl) gl.viewport(0, 0, w, h);
+  }
+  window.addEventListener('resize', resize);
+
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); ready = false; });
+  canvas.addEventListener('webglcontextrestored', () => { init(); });
+
+  if (!init()) {
+    canvas.remove();
+    return noop;
+  }
+  document.documentElement.classList.add('gl-on');
+
+  const ch = (v, rate) => ({ v, t: v, rate });
+  const speed   = ch(1, 0.4);
+  const bright  = ch(1, 0.4);
+  const zoom    = ch(1, 0.5);
+  const distort = ch(0, 0.6);
+  const channels = [speed, bright, zoom, distort];
+
+  const PALETTES = {
+    ruleta:    [[0.012, 0.070, 0.045], [0.030, 0.240, 0.140], [0.060, 0.420, 0.240], [0.35, 0.95, 0.60]],
+    roguelike: [[0.070, 0.008, 0.014], [0.300, 0.040, 0.070], [0.550, 0.070, 0.130], [1.00, 0.35, 0.38]]
+  };
+  let palTarget = PALETTES.ruleta;
+  const palCur = PALETTES.ruleta.map(c => c.slice());
+
+  const ripples = [];
+  let T = 0;
+  let safetyTimer = 0;
+
+  function toScreenSpace(cx, cy) {
+    const w = window.innerWidth, h = window.innerHeight;
+    return { x: (cx / w - 0.5) * (w / h), y: -(cy / h - 0.5) };
+  }
+
+  let vortexCenter = { x: 0, y: 0 };
+
+  const RESET_OUT = 1100, RESET_HOLD = 300, RESET_IN = 1800;
+  const RESET_TOTAL = RESET_OUT + RESET_HOLD + RESET_IN;
+  let part = 0;
+
+  // Pixelado del fondo (lo controla el slider de CRT). Se indica en píxeles CSS.
+  let pixelCss = 1;
+  let pixelatedCanvas = false;
+  function setPixelSize(px) { pixelCss = Math.max(1, Number(px) || 1); }
+  const resetAnim = { active: false, start: 0, done: null, timer: 0, ret: false };
+
+  function resetCurve(el) {
+    if (el < RESET_OUT) {
+      const x = el / RESET_OUT;
+      return 1 - Math.pow(1 - x, 2.6);
+    }
+    if (el < RESET_OUT + RESET_HOLD) {
+      const x = (el - RESET_OUT) / RESET_HOLD;
+      return 1 - 0.035 * Math.sin(Math.PI * x);
+    }
+    const x = Math.min(1, (el - RESET_OUT - RESET_HOLD) / RESET_IN);
+    const u = Math.pow(x, 1.35);
+    return 1 - u * u * (3 - 2 * u);
+  }
+
+  function finishReset() {
+    if (!resetAnim.active) return;
+
+    resetAnim.active = false;
+    clearTimeout(resetAnim.timer);
+    part = 0;
+
+    const cb = resetAnim.done;
+    resetAnim.done = null;
+
+    if (typeof cb === 'function') requestAnimationFrame(cb);
+  }
+
+  function playReset(onDone) {
+    if (resetAnim.active) return true;
+    if (!ready || reduceMotion) return false;
+    resetAnim.active = true;
+    resetAnim.start = performance.now();
+    resetAnim.done = onDone;
+    resetAnim.ret = false;
+    speed.v += 5;
+    distort.v += 0.9 * MOTION;
+    addRipple(undefined, undefined, 1.0);
+    clearTimeout(resetAnim.timer);
+    resetAnim.timer = setTimeout(finishReset, RESET_TOTAL + 400);
+    return true;
+  }
+  const spinPhase = { active: false, start: 0, duration: 4200 };
+  const VORTEX_PEAK = 3.4;
+
+  function addRipple(cx, cy, s) {
+    if (cx === undefined) { cx = window.innerWidth / 2; cy = window.innerHeight / 2; }
+    const p = toScreenSpace(cx, cy);
+    if (ripples.length >= 8) ripples.shift();
+    ripples.push({ x: p.x, y: p.y, age: 0, s: s === undefined ? 1 : s });
+  }
+
+  window.addEventListener('pointerdown', e => { if (!reduceMotion) addRipple(e.clientX, e.clientY, 0.9); }, { passive: true });
+
+  function relax() {
+    speed.t = 1; distort.t = 0; zoom.t = 1;
+    spinPhase.active = false;
+    clearTimeout(safetyTimer);
+  }
+
+  function burst(n, s, opts) {
+    for (let i = 0; i < n; i++) {
+      setTimeout(() => addRipple(opts.x, opts.y, s * (1 - i * 0.12)), i * 140);
+    }
+  }
+
+  function trigger(name, opts) {
+    opts = opts || {};
+    const m = MOTION;
+    switch (String(name).toUpperCase()) {
+      case 'SPIN':
+        speed.t = 1 + 0.85 * m; distort.t = 0.35 * m; zoom.t = 1 + 0.02 * m;
+        vortexCenter = toScreenSpace(
+          opts.x === undefined ? window.innerWidth / 2 : opts.x,
+          opts.y === undefined ? window.innerHeight / 2 : opts.y
+        );
+        spinPhase.active = true;
+        spinPhase.start = performance.now();
+        spinPhase.duration = opts.duration || 4200;
+        addRipple(opts.x, opts.y, 0.7);
+        clearTimeout(safetyTimer);
+        safetyTimer = setTimeout(relax, opts.duration || 9000);
+        break;
+      case 'SPIN_END':
+      case 'IDLE':
+        relax();
+        break;
+      case 'WIN':
+        relax();
+        bright.v += 1.3 * m; zoom.v += 0.10 * m; speed.v += 7.8 * m;
+        burst(3, 1.0, opts);
+        break;
+      case 'JACKPOT':
+      case 'BIG':
+        relax();
+        bright.v += 1.9 * m; zoom.v += 0.26 * m; distort.v += 1.4 * m; speed.v += 9.4 * m;
+        burst(5, 1.2, opts);
+        break;
+      case 'LOSE':
+        relax();
+        bright.v -= 0.55 * m; speed.v = Math.max(0.05, speed.v - 3.6 * m);
+        addRipple(opts.x, opts.y, 0.3);
+        break;
+      case 'EVENT':
+        zoom.v += 0.14 * m; distort.v += 0.8 * m;
+        addRipple(opts.x, opts.y, 0.8);
+        break;
+      default:
+        console.warn('[liquidBg] trigger desconocido:', name);
+    }
+  }
+
+  function setMode(mode) {
+    palTarget = PALETTES[mode] || PALETTES.ruleta;
+    bright.v += 0.3 * MOTION;
+    zoom.v += 0.05 * MOTION;
+    addRipple(undefined, undefined, 0.8);
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!ready) return;
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    channels.forEach(c => { c.v += (c.t - c.v) * (1 - Math.exp(-c.rate * dt)); });
+    T += dt * speed.v * MOTION;
+
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      ripples[i].age += dt;
+      if (ripples[i].age > 4.5) ripples.splice(i, 1);
+    }
+    ripBuf.fill(0);
+    ripples.forEach((r, i) => {
+      ripBuf[i * 4] = r.x; ripBuf[i * 4 + 1] = r.y; ripBuf[i * 4 + 2] = r.age; ripBuf[i * 4 + 3] = r.s;
+    });
+
+    const k = 1 - Math.exp(-2.5 * dt);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) palCur[i][j] += (palTarget[i][j] - palCur[i][j]) * k;
+
+    gl.uniform2f(U.uRes, canvas.width, canvas.height);
+    gl.uniform1f(U.uTime, T);
+    gl.uniform2f(U.uMouse, 0, 0);
+    gl.uniform1f(U.uMouseAmt, 0);
+    gl.uniform1f(U.uBright, bright.v);
+    gl.uniform1f(U.uZoom, zoom.v);
+    gl.uniform1f(U.uDistort, distort.v);
+    if (resetAnim.active) {
+      const el = now - resetAnim.start;
+      if (el >= RESET_TOTAL) {
+        finishReset();
+      } else {
+        part = resetCurve(el);
+        if (!resetAnim.ret && el >= RESET_OUT + RESET_HOLD) {
+          resetAnim.ret = true;
+          speed.v += 2.5;
+          distort.v += 0.6 * MOTION;
+          addRipple(undefined, undefined, 0.6);
+        }
+      }
+    }
+    gl.uniform1f(U.uPart, part);
+    {
+      const pix = pixelCss * canvas.width / Math.max(1, window.innerWidth);   // px CSS -> px del canvas
+      const on = pix >= 1.5;
+      gl.uniform1f(U.uPix, on ? Math.round(pix) : 1);
+      if (on !== pixelatedCanvas) {                 // bordes nítidos entre bloques solo cuando hay pixelado
+        pixelatedCanvas = on;
+        canvas.style.imageRendering = on ? 'pixelated' : '';
+      }
+    }
+    gl.uniform3fv(U.uC0, palCur[0]);
+    gl.uniform3fv(U.uC1, palCur[1]);
+    gl.uniform3fv(U.uC2, palCur[2]);
+    gl.uniform3fv(U.uC3, palCur[3]);
+    gl.uniform4fv(U.uRip, ripBuf);
+
+    let vortexStrength = 0;
+    if (spinPhase.active) {
+      const st = (now - spinPhase.start) / spinPhase.duration;
+      if (st >= 1) {
+        spinPhase.active = false;
+      } else {
+        const rampIn = Math.min(1, st / 0.10);
+        const decel = Math.pow(1 - st, 1.7);
+        vortexStrength = VORTEX_PEAK * MOTION * rampIn * decel;
+      }
+    }
+    gl.uniform3f(U.uVortex, vortexCenter.x, vortexCenter.y, vortexStrength);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  requestAnimationFrame(frame);
+
+  return { supported: true, trigger, setMode, addRipple, playReset, setPixelSize, RESET_DURATION: RESET_TOTAL };
+})();
+
+</script>
+<script>
+(function () {
+  // ---------- ESTADÍSTICAS (se guardan en el navegador si se puede) ----------
+  const GameStats = (() => {
+    const KEY = 'ruletaStats';
+    let d = { v: 2, goal: 0, goalTarget: 0, money: 0, win: 0 };
+    try { const raw = localStorage.getItem(KEY); if (raw) d = Object.assign(d, JSON.parse(raw)); } catch (e) {}
+    if (d.v !== 2) { d.v = 2; d.goal = 0; d.goalTarget = 0; }   // antes contaba el objetivo en juego; ahora el completado
+    const subs = [];
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} subs.forEach(f => f(d)); };
+    return {
+      data: () => d,
+      onChange: (f) => { subs.push(f); },
+      goal(n, target) { if (n > d.goal) { d.goal = n; d.goalTarget = target; save(); } },
+      money(n) { if (n > d.money) { d.money = n; save(); } },
+      win(n) { if (n > d.win) { d.win = n; save(); } }
+    };
+  })();
+  window.GameStats = GameStats;   // el panel de Ajustes (otro bloque de script) lo necesita
+
+  const WHEEL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+  const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+  const SEG_ANGLE = 360 / WHEEL_ORDER.length;
+  const WHEEL_CX = 100;
+  const WHEEL_CY = 100;
+  const WHEEL_R_OUT = 92;
+  const WHEEL_R_IN = 20;
+  const TOWER_SLOTS = [
+    { left: 20, bottom: 4 }, { left: 50, bottom: 4 }, { left: 80, bottom: 4 },
+    { left: 35, bottom: 50 }, { left: 65, bottom: 50 }
+  ];
+  const ROW1 = [0, 1, 2];
+  const ROW2 = [3, 4];
+  const ROW1_CENTER = 1;
+  const DENOMS = [1000000000000, 500000000, 1000000, 10000, 500, 250, 50, 25, 10];
+  const ZONES = ['rojo', 'negro', 'verde'];
+  const instances = {};
+
+  function initRoulette(sfx, opts) {
+    opts = opts || {};
+    const lock = !!opts.lock;
+    const colorHex = opts.colorHex || { rojo: '#c0392b', negro: '#1c1c1c', verde: '#1e6b4f' };
+
+    function colorOf(n) {
+      if (n === 0) return 'verde';
+      return RED_NUMBERS.has(n) ? 'rojo' : 'negro';
+    }
+
+    function polar(cx, cy, r, angleDeg) {
+      const rad = (angleDeg - 90) * Math.PI / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    }
+
+    function wedgePath(a0, a1) {
+      const p1 = polar(WHEEL_CX, WHEEL_CY, WHEEL_R_OUT, a0);
+      const p2 = polar(WHEEL_CX, WHEEL_CY, WHEEL_R_OUT, a1);
+      const p3 = polar(WHEEL_CX, WHEEL_CY, WHEEL_R_IN, a1);
+      const p4 = polar(WHEEL_CX, WHEEL_CY, WHEEL_R_IN, a0);
+      return `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${WHEEL_R_OUT} ${WHEEL_R_OUT} 0 0 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} L ${p3.x.toFixed(2)} ${p3.y.toFixed(2)} A ${WHEEL_R_IN} ${WHEEL_R_IN} 0 0 0 ${p4.x.toFixed(2)} ${p4.y.toFixed(2)} Z`;
+    }
+
+    const state = {
+      balance: 1000,
+      balanceLocked: false,
+      selectedChip: null,
+      pendingAmount: null,
+      bets: { rojo: 0, negro: 0, verde: 0 },
+      stacks: { rojo: [], negro: [], verde: [] },
+      slotAssignments: { rojo: [], negro: [], verde: [] },
+      spinning: false,
+      rotation: 0,
+      ballAngle: 0
+    };
+
+    const els = {
+      wheelWrap: document.getElementById('wheelWrap' + sfx),
+      wheel: document.getElementById('wheel' + sfx),
+      pockets: document.getElementById('pockets' + sfx),
+      ballLayer: document.getElementById('ballLayer' + sfx),
+      ball: document.getElementById('ball' + sfx),
+      balanceValue: document.getElementById('balanceValue' + sfx),
+      balanceCorner: document.getElementById('balanceCorner' + sfx),
+      btnLockBalance: document.getElementById('btnLockBalance' + sfx),
+      btnReset: document.getElementById('btnReset' + sfx),
+      totalBetDisplay: document.getElementById('totalBetDisplay' + sfx),
+      chips: document.getElementById('chips' + sfx),
+      mats: document.getElementById('mats' + sfx),
+      btnClear: document.getElementById('btnClear' + sfx),
+      btnAllIn: document.getElementById('btnAllIn' + sfx)
+    };
+
+    const chipButtons = els.chips.querySelectorAll('.chip');
+    const matElements = els.mats.querySelectorAll('.mat');
+    const stackEls = {
+      rojo: document.getElementById('stack-rojo' + sfx),
+      negro: document.getElementById('stack-negro' + sfx),
+      verde: document.getElementById('stack-verde' + sfx)
+    };
+    const chipAnchors = {
+      25: els.chips.querySelector('.chip[data-value="25"]'),
+      10000: els.chips.querySelector('.chip[data-value="10000"]'),
+      500000000: els.chips.querySelector('.chip[data-value="500000000"]'),
+      1000000000000: els.chips.querySelector('.chip[data-value="1000000000000"]')
+    };
+
+    function fmt(n) { return n.toLocaleString('es-ES'); }
+
+    // ---------- OBJETIVOS (solo modo Roguelike) ----------
+    // Cada objetivo: ganar (beneficio neto, no saldo) una cantidad en 3 tiradas.
+    const GOALS = [300, 800, 2000, 5000, 10000, 20000, 35000, 50000, 100000, 560000,
+                   7200000, 300000000, 50000000000, 1000000000000];   // el último: 1 billón europeo
+    const SPINS_PER_GOAL = 4;
+
+    function fmtShort(n) {
+      if (n < 1e6) return fmt(n);
+      const es = (x) => x.toLocaleString('es-ES', { maximumFractionDigits: 2 });
+      if (n >= 1e12) { const v = n / 1e12; return es(v) + (v === 1 ? ' billón' : ' billones'); }
+      return es(n / 1e6) + ' millones';
+    }
+    const signed = (n) => (n < 0 ? '\u2212' + fmtShort(-n) : fmtShort(n));
+
+    // ---------- HABILIDADES (subconjunto del documento: comunes, raras y la maldita Pereza) ----------
+    const SKILLS = [
+      ['interes','Interés compuesto','common','💰','+5% de ganancia por cada 10.000 de dinero actual (máximo +250%).','+10% de ganancia por cada 10.000 de dinero actual (máximo +1000%).'],
+      ['allin','All-in','common','🎲','Apostando el 100% de tu dinero: +600% de ganancia.','Apostando el 100% de tu dinero: +1000% de ganancia.'],
+      ['migajas','Migajas','common','🍞','Si apuestas menos del 10% de tu dinero y pierdes, recuperas el 20% de lo apostado.','Menos del 20% de tu dinero y pierdes: recuperas el 50% de lo apostado.'],
+      ['ultimo','Último cartucho','common','🔫','Con menos del 10% de tu máximo de dinero: +400% de ganancia.','Con menos del 10% de tu máximo de dinero: +600% de ganancia.'],
+      ['pares','Pares','common','2️⃣','Número par: +50%. Impar: −20% (se anula con Impares).','Número par: +100% de ganancia. Impar: −5% (se anula con Impares).'],
+      ['impares','Impares','common','1️⃣','Número impar: +50%. Par: −20% (se anula con Pares).','Número impar: +100% de ganancia. Par: −5% (se anula con Pares).'],
+      ['adrenalina','Adrenalina','common','💉','Apuestas más del 50% de tu dinero y ganas: +25% de ganancia permanente.','Apuestas más del 50% de tu dinero y ganas: +50% de ganancia permanente.'],
+      ['bancarrota','Bancarrota','common','📉','Cuanto menos dinero respecto a tu máximo, más ganancia (hasta +150%).','Cuanto menos dinero respecto a tu máximo, más ganancia (hasta +300%).'],
+      ['racha','Racha','common','🔥','+25% de ganancia por cada victoria consecutiva.','+50% de ganancia por cada victoria consecutiva.'],
+      ['momentum','Momentum','common','⚡','Cada dos victorias seguidas: +10% de ganancia permanente.','Cada dos victorias seguidas: +25% de ganancia permanente.'],
+      ['seguro','Seguro','common','🛡️','Al perder recuperas el 10% de lo apostado (no en all-in).','Al perder recuperas el 25% de lo apostado (no en all-in).'],
+      ['segunda','Segunda oportunidad','common','🔁','Una vez por objetivo, si pierdes una tirada no pierdes la apuesta y la ruleta vuelve a girar (sin gastar tirada).','Una vez por objetivo, si pierdes una tirada no pierdes la apuesta y la ruleta vuelve a girar (sin gastar tirada), con +50% de ganancia en ese nuevo giro.'],
+      ['plata','Plata','common','🥈','Añade 4 casillas plateadas (2 negras y 2 rojas): +100% de ganancia si cae en una.','Añade 8 casillas plateadas (4 negras y 4 rojas): +150% de ganancia si cae en una.'],
+      ['trebol','Trébol','common','☘️','Convierte 1 casilla negra y 1 roja en verdes.','Convierte 1 casilla negra y 1 roja en verdes, y además una casilla verde pasa a ser plateada.'],
+      ['pereza','Pereza','cursed','🦥','Apostar lo mismo que en la tirada anterior: +100% de ganancia.',''],
+      ['avaricia','Avaricia','cursed','💎','Apostando más del 80% de tu dinero: +500%. No puedes apostar menos del 30% de tu dinero.',''],
+      ['ira','Ira','cursed','😡','Tras perder 2 tiradas seguidas, la siguiente victoria paga ×10 la apuesta. Si vuelves a perder, esa pérdida se duplica.',''],
+      ['envidia','Envidia','cursed','🐍','Con tu dinero 2 veces por debajo del objetivo: +100%. 3 veces por debajo: −25%.',''],
+      ['gula','Gula','cursed','🍖','Tras dos tiradas seguidas apostando más del 50% de tu dinero, la siguiente (si vuelves a apostar más del 50%) tiene +500%.',''],
+      ['soberbia','Soberbia','cursed','🦚','Superar tu máximo histórico: +25% permanente. Ganar menos del 25% de tu máximo: −1% permanente.',''],
+      ['trebolsuerte','Trébol de la suerte','rare','🍃','Convierte 3 casillas negras y 3 rojas en verdes.','Convierte 6 casillas negras y 6 rojas en verdes.'],
+      ['midas','Midas','rare','🏆','Todas las casillas se vuelven doradas: +100% de ganancia final. Las plateadas pasan a diamante: +300%.','Todas las casillas son de diamante: +300% de ganancia final.'],
+      ['2575','25/75','rare','🎭','La mitad de las casillas negras pasan a rojas.','Todas las casillas negras pasan a rojas.'],
+      ['rey','Rey del casino','rare','👑','Multiplica ×2 tu ganancia final.','Multiplica ×10 tu ganancia final.'],
+      ['reyverde','Rey del verde','rare','🍀','Ganar al verde: +300% de ganancia final.','Ganar al verde: +1000% de ganancia final.'],
+      ['negro','Todo al negro','rare','♠️','Ganar apostando al negro: +5% de ganancia permanente.','Ganar apostando al negro: +50% de ganancia permanente.']
+    ];
+    const RARITY_LABEL = { common: 'Común', rare: 'Rara', cursed: 'Maldita' };
+    const sk = { owned: new Map(), streak: 0, maxMoney: 0, mom: 0, adren: 0, black: 0, lastBet: -1 };
+    const has = (id) => sk.owned.has(id);
+    const lv = (id, a, b) => (sk.owned.get(id) ? b : a);   // valor normal / potenciado
+    function resetSkills() {
+      sk.owned.clear(); sk.streak = 0; sk.maxMoney = state.balance; sk.mom = 0; sk.adren = 0; sk.black = 0; sk.lastBet = -1;
+      sk.sob = 0; sk.big = 0; sk.losses = 0; sk.secondUsed = false; sk.retryBonus = false; sk.target = 0;
+      sk.layout = WHEEL_ORDER.map(n => ({ c: colorOf(n), m: null }));   // color y marca (plata) de cada casilla
+    }
+    // tipo efectivo de una casilla: null, 'silver', 'gold' o 'diamond'
+    function cellType(i) {
+      const L = sk.layout && sk.layout[i];
+      if (!L) return null;
+      if (has('midas')) return lv('midas', 0, 1) ? 'diamond' : (L.m === 'silver' ? 'diamond' : 'gold');
+      return L.m;
+    }
+    function applyLayout(id, up) {
+      const L = sk.layout;
+      const pick = (c, n, any) => {
+        const a = L.map((x, i) => i).filter(i => L[i].c === c && (any || !L[i].m));
+        for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+        return a.slice(0, n);
+      };
+      if (id === 'plata') ['negro', 'rojo'].forEach(c => pick(c, up ? 4 : 2).forEach(i => { L[i].m = 'silver'; }));
+      if (id === 'trebol') {
+        ['negro', 'rojo'].forEach(c => pick(c, 1).forEach(i => { L[i].c = 'verde'; }));
+        if (up) pick('verde', 1).forEach(i => { L[i].m = 'silver'; });
+      }
+      if (id === 'trebolsuerte') ['negro', 'rojo'].forEach(c => pick(c, up ? 6 : 3).forEach(i => { L[i].c = 'verde'; }));
+      if (id === '2575') { const nb = L.filter(x => x.c === 'negro').length; pick('negro', up ? nb : Math.floor(nb / 2), true).forEach(i => { L[i].c = 'rojo'; }); }
+    }
+    function toast(msg) {
+      let t = document.getElementById('toastRg');
+      if (!t) { t = document.createElement('div'); t.id = 'toastRg'; t.className = 'toast'; document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+    // devuelve lo que se suma al dinero al resolver la tirada (apuesta ya descontada al apostar)
+    function skillResult(stake, color, number, before, idx) {
+      const tot = totalBet(), won = stake > 0, allIn = tot > 0 && tot >= before;
+      const bal = before, mx = Math.max(sk.maxMoney, bal), big = tot > 0.5 * bal;
+      let result = 0, gulaUsed = false;
+      if (won) {
+        let base = (color === 'verde' ? stake * 36 : stake * 2) - stake;
+        if (has('ira') && sk.losses >= 2) base = Math.max(base, stake * 9);      // la victoria paga ×10 la apuesta
+        let A = sk.adren + sk.mom + sk.sob;                                       // bonificaciones permanentes
+        if (has('interes')) A += Math.min(lv('interes', 2.5, 10), Math.floor(bal / 10000) * lv('interes', 0.05, 0.10));   // tope: +250% (potenciado +1000%)
+        if (has('allin') && allIn) A += lv('allin', 6, 10);
+        if (has('ultimo') && bal < 0.10 * mx) A += lv('ultimo', 4, 6);
+        const par = number > 0 && number % 2 === 0, impar = number % 2 === 1;
+        if (has('pares')) { if (par) A += lv('pares', 0.50, 1.00); else if (impar && !has('impares')) A -= lv('pares', 0.20, 0.05); }
+        if (has('impares')) { if (impar) A += lv('impares', 0.50, 1.00); else if (par && !has('pares')) A -= lv('impares', 0.20, 0.05); }
+        if (has('bancarrota')) A += lv('bancarrota', 1.5, 3) * Math.max(0, 1 - bal / Math.max(1, mx));
+        if (has('racha')) A += (sk.streak + 1) * lv('racha', 0.25, 0.50);
+        if (has('pereza') && tot === sk.lastBet) A += 1.00;
+        if (has('avaricia') && tot > 0.8 * bal) A += 5;
+        if (has('envidia') && sk.target) { if (bal * 3 <= sk.target) A -= 0.25; else if (bal * 2 <= sk.target) A += 1; }
+        if (has('gula') && sk.big >= 2 && big) { A += 5; gulaUsed = true; }
+        if (sk.retryBonus) A += 0.5;                                              // Segunda oportunidad potenciada
+        const ct = cellType(idx);
+        if (ct === 'silver') A += has('plata') ? lv('plata', 1, 1.5) : 1;
+        let M = 1;
+        if (has('rey')) M *= lv('rey', 2, 10);
+        if (has('reyverde') && color === 'verde') M *= 1 + lv('reyverde', 3, 10);
+        if (has('negro')) M *= 1 + sk.black;
+        if (ct === 'gold') M *= 2;
+        if (ct === 'diamond') M *= 4;
+        result = stake + base * Math.max(0, 1 + A) * M;
+      } else {
+        if (has('migajas') && tot > 0 && tot < lv('migajas', 0.10, 0.20) * bal) result += tot * lv('migajas', 0.20, 0.50);
+        if (has('seguro') && tot > 0 && !allIn) result += tot * lv('seguro', 0.10, 0.25);
+        if (has('ira') && sk.losses >= 2 && tot > 0) result = Math.max(result - tot, -state.balance);   // la pérdida se duplica
+      }
+      // actualizar contadores para las tiradas siguientes
+      if (won) {
+        sk.streak += 1; sk.losses = 0;
+        if (has('adrenalina') && big) sk.adren += lv('adrenalina', 0.25, 0.50);
+        if (has('momentum') && sk.streak % 2 === 0) sk.mom += lv('momentum', 0.10, 0.25);
+        if (has('negro') && color === 'negro') sk.black += lv('negro', 0.05, 0.50);
+      } else { sk.streak = 0; sk.losses += 1; }
+      sk.big = has('gula') ? (big ? (gulaUsed ? 0 : sk.big + 1) : 0) : 0;
+      sk.lastBet = tot; sk.retryBonus = false;
+      const nm = bal - tot + result;
+      if (has('soberbia')) { if (nm > mx) sk.sob += 0.25; if (nm - bal < 0.25 * mx) sk.sob -= 0.01; }
+      sk.maxMoney = Math.max(mx, nm);
+      return Math.floor(result);
+    }
+
+    function createGoals() {
+      const $ = (id) => document.getElementById(id + 'Rg');
+      const hud = $('goalHud'), kicker = $('goalKicker'), progress = $('goalProgress'),
+            fill = $('goalFill'), pips = $('goalPips'), spinsText = $('goalSpinsText');
+      const modal = $('goalModal'), card = $('goalCard'), mKicker = $('goalModalKicker'), mTitle = $('goalModalTitle'),
+            mText = $('goalModalText'), mReward = $('goalReward'), mBtn = $('goalModalBtn');
+      // progress = lo ganado en este objetivo; solo suman las tiradas con beneficio (perder no resta)
+      const g = { index: 0, spinsLeft: SPINS_PER_GOAL, progress: 0, spinStart: 0 };
+      const skBtn = $('skillsBtn'), skList = $('skillsList'), skCount = $('skillsCount'), pick = $('pick'), pickCards = $('pickCards');
+      let timer = 0, onModalBtn = null;
+      resetSkills();
+
+      function renderSkills() {
+        buildWheelSvg();
+        skCount.textContent = sk.owned.size;
+        skList.innerHTML = '';
+        if (!sk.owned.size) { skList.innerHTML = '<div class="skill-empty">Aún no tienes habilidades</div>'; return; }
+        sk.owned.forEach((up, id) => {
+          const d = SKILLS.find(x => x[0] === id);
+          const row = document.createElement('div');
+          row.className = 'skill-row ' + d[2];
+          row.innerHTML = '<i>' + d[3] + '</i><span><b>' + d[1] + (up ? ' ★' : '') + '</b>' + (up ? d[5] : d[4]) + '</span>';
+          skList.appendChild(row);
+        });
+      }
+      skBtn.addEventListener('click', () => {
+        skList.hidden = !skList.hidden;
+        skBtn.setAttribute('aria-expanded', String(!skList.hidden));
+      });
+
+      function offer() {
+        const rareOk = g.index >= 8;   // las raras salen a partir del objetivo de 100.000
+        const pool = SKILLS.filter(d => !sk.owned.has(d[0]) && (d[2] !== 'rare' || rareOk));
+        const out = [];
+        while (out.length < 3 && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        return out.map(d => ({ d, up: d[5] !== '' && Math.random() < (d[2] === 'rare' ? 0.01 : 0.05) }));
+      }
+      function showPick() {
+        const cards = offer();
+        if (!cards.length) { nextGoal(); return; }
+        pickCards.innerHTML = '';
+        cards.forEach(({ d, up }) => {
+          const c = document.createElement('button');
+          c.type = 'button';
+          c.className = 'skill-card ' + d[2];
+          c.innerHTML = '<div class="ic">' + d[3] + '</div><div class="nm">' + d[1] + '</div><div class="rr">' + RARITY_LABEL[d[2]] + '</div>' +
+                        (up ? '<div class="up">★ POTENCIADA</div>' : '') + '<div class="tx">' + (up ? d[5] : d[4]) + '</div>';
+          c.addEventListener('click', () => { sk.owned.set(d[0], up); applyLayout(d[0], up); pick.hidden = true; renderSkills(); nextGoal(); });
+          pickCards.appendChild(c);
+        });
+        pick.hidden = false;
+      }
+      renderSkills();
+
+      function render() {
+        const target = GOALS[g.index];
+        const profit = g.progress;
+        kicker.textContent = 'Objetivo ' + (g.index + 1);
+        progress.textContent = signed(profit) + ' / ' + fmtShort(target) + ' \u20ac';
+        progress.style.fontSize = progress.textContent.length > 19 ? '12px' : '';   // cifras largas: letra algo menor (si aún no caben, baja de línea)
+        progress.title = 'Gana ' + fmt(target) + ' \u20ac (llevas ' + (profit < 0 ? '\u2212' + fmt(-profit) : fmt(profit)) + ')';
+        fill.style.width = Math.min(100, Math.max(0, profit / target * 100)) + '%';
+        Array.from(pips.children).forEach((el, i) => el.classList.toggle('on', i < g.spinsLeft));
+        spinsText.textContent = g.spinsLeft + (g.spinsLeft === 1 ? ' tirada' : ' tiradas');
+        hud.classList.toggle('last-spin', g.spinsLeft === 1);
+      }
+
+      function showModal(kind, kick, head, text, reward, btnText, handler) {
+        card.className = 'goal-card ' + kind;
+        mKicker.textContent = kick;
+        mTitle.textContent = head;
+        mText.textContent = text;
+        mReward.hidden = !reward;
+        mBtn.textContent = btnText;
+        onModalBtn = handler;
+        modal.hidden = false;
+        mBtn.focus({ preventScroll: true });
+      }
+      function hideModal() { modal.hidden = true; onModalBtn = null; }
+      mBtn.addEventListener('click', () => { if (onModalBtn) onModalBtn(); });
+
+      function nextGoal() {
+        hideModal();
+        g.index += 1;
+        g.spinsLeft = SPINS_PER_GOAL;
+        g.progress = 0;
+        sk.secondUsed = false;      // Segunda oportunidad: una vez por objetivo
+        hud.classList.remove('achieved');
+        hud.classList.remove('new-goal'); void hud.offsetWidth; hud.classList.add('new-goal');
+        state.spinning = false;
+        updateUI();
+        saveRun();
+      }
+      function restartRun() {
+        hideModal();
+        state.spinning = false;
+        els.btnReset.dataset.go = '1';
+        els.btnReset.click();
+      }
+
+      function won() {
+        GameStats.goal(g.index + 1, GOALS[g.index]);   // objetivo completado
+        if (g.index === GOALS.length - 1) clearRun(); else saveRun({ pick: true });
+        state.spinning = true;                    // bloquea el juego mientras se muestra el aviso
+        updateUI();
+        hud.classList.add('achieved');
+        const target = GOALS[g.index];
+        const used = SPINS_PER_GOAL - g.spinsLeft;
+        const gained = g.progress;
+        timer = setTimeout(() => {
+          if (g.index === GOALS.length - 1) {
+            showModal('win', 'Run completada', '\u00a1Lo has conseguido!',
+              'Has superado todos los objetivos y ganado ' + fmtShort(target) + ' \u20ac en ' + used + (used === 1 ? ' tirada' : ' tiradas') + ' en el \u00faltimo.',
+              false, 'Empezar de nuevo', restartRun);
+          } else {
+            showPick();
+          }
+        }, 900);
+      }
+      function lost(broke) {
+        clearRun();
+        state.spinning = true;
+        updateUI();
+        const target = GOALS[g.index];
+        timer = setTimeout(() => {
+          showModal('lose', 'Run terminada', 'Objetivo fallido',
+            broke ? 'Te has quedado sin dinero antes de ganar ' + fmtShort(target) + ' \u20ac.'
+                  : 'No has ganado ' + fmtShort(target) + ' \u20ac en ' + SPINS_PER_GOAL + ' tiradas.',
+            false, 'Reiniciar run', restartRun);
+        }, 900);
+      }
+
+      // ---------- PARTIDA GUARDADA (localStorage) ----------
+      // Se guarda tras cada tirada y al elegir habilidad; se borra al perder o reiniciar (las estadísticas no).
+      const RUN_KEY = 'ruletaRun';
+      function saveRun(extra) {
+        try {
+          localStorage.setItem(RUN_KEY, JSON.stringify(Object.assign({
+            v: 1, balance: state.balance, index: g.index, spinsLeft: g.spinsLeft, progress: g.progress,
+            owned: Array.from(sk.owned.entries()),
+            sk: { streak: sk.streak, maxMoney: sk.maxMoney, mom: sk.mom, adren: sk.adren, black: sk.black, lastBet: sk.lastBet, sob: sk.sob, big: sk.big, losses: sk.losses, secondUsed: sk.secondUsed, retryBonus: sk.retryBonus, layout: sk.layout }
+          }, extra || {})));
+        } catch (e) {}
+      }
+      function clearRun() { try { localStorage.removeItem(RUN_KEY); } catch (e) {} }
+      function loadRun() {
+        try {
+          const raw = localStorage.getItem(RUN_KEY);
+          if (!raw) return null;
+          const r = JSON.parse(raw);
+          const ok = r && r.v === 1 && Number.isFinite(r.balance) && r.balance > 0 && Number.isInteger(r.index) && r.index >= 0 && r.index < GOALS.length &&
+                     Number.isFinite(r.progress) && Number.isInteger(r.spinsLeft) && r.spinsLeft >= 0 && r.spinsLeft <= SPINS_PER_GOAL && Array.isArray(r.owned) && r.sk;
+          if (!ok || (r.spinsLeft === 0 && !r.pick)) { clearRun(); return null; }   // partida corrupta, o cerrada en mitad de la última tirada (cuenta como perdida)
+          return r;
+        } catch (e) { return null; }
+      }
+      const saved = loadRun();
+      if (saved) {
+        state.balance = saved.balance;
+        g.index = saved.index; g.spinsLeft = saved.spinsLeft; g.progress = saved.progress;
+        sk.owned = new Map(saved.owned.filter(([id]) => SKILLS.some(d => d[0] === id)));
+        ['streak', 'maxMoney', 'mom', 'adren', 'black', 'lastBet', 'sob', 'big', 'losses'].forEach(k => { if (Number.isFinite(saved.sk[k])) sk[k] = saved.sk[k]; });
+        sk.secondUsed = !!saved.sk.secondUsed; sk.retryBonus = !!saved.sk.retryBonus;
+        if (Array.isArray(saved.sk.layout) && saved.sk.layout.length === WHEEL_ORDER.length) sk.layout = saved.sk.layout;
+        renderSkills();
+        if (saved.pick) { state.spinning = true; setTimeout(showPick, 500); }   // cerró con las cartas abiertas: se vuelven a ofrecer
+      }
+
+      return {
+        render,
+        calc: skillResult,
+        spinBefore: () => g.spinStart,
+        betOk() {
+          if (!has('avaricia')) return true;
+          const tot = totalBet();
+          if (tot >= 0.3 * (state.balance + tot)) return true;
+          toast('Avaricia: debes apostar al menos el 30% de tu dinero');
+          return false;
+        },
+        secondChance() {
+          if (!has('segunda') || sk.secondUsed || totalBet() <= 0) return false;
+          sk.secondUsed = true; sk.retryBonus = lv('segunda', false, true);
+          return true;
+        },
+        undoSpin() { g.spinsLeft = Math.min(SPINS_PER_GOAL, g.spinsLeft + 1); },
+        beginSpin() {
+          sk.target = GOALS[g.index];
+          g.spinStart = state.balance + totalBet();     // dinero antes de la tirada (apuestas incluidas)
+          g.spinsLeft = Math.max(0, g.spinsLeft - 1);
+          render();
+          saveRun();      // si cierra a mitad de tirada, la apuesta cuenta como perdida
+        },
+        afterSpin() {
+          const net = state.balance - g.spinStart;        // resultado neto de esta tirada
+          if (net > 0) g.progress += net;                 // ganar suma; perder no resta
+          GameStats.money(state.balance);
+          if (net > 0) GameStats.win(net);
+          render();
+          if (g.progress >= GOALS[g.index]) won();
+          else if (state.balance <= 0) lost(true);
+          else if (g.spinsLeft <= 0) lost(false);
+          else saveRun();
+        },
+        reset() {
+          clearTimeout(timer);
+          clearRun();
+          hideModal();
+          pick.hidden = true;
+          resetSkills();
+          renderSkills();
+          g.index = 0;
+          g.spinsLeft = SPINS_PER_GOAL;
+          g.progress = 0;
+          hud.classList.remove('achieved');
+          render();
+        }
+      };
+    }
+    const goals = (sfx === 'Rg') ? createGoals() : null;
+
+    function flyChipToBalance(chipEl, loops) {
+      const startRect = chipEl.getBoundingClientRect();
+      const targetRect = els.balanceCorner.getBoundingClientRect();
+      const startX = startRect.left + startRect.width / 2;
+      const startY = startRect.top + startRect.height / 2;
+      const targetX = targetRect.left + targetRect.width / 2;
+      const targetY = targetRect.top + targetRect.height / 2;
+
+      const dx0 = startX - targetX;
+      const dy0 = startY - targetY;
+      const radius0 = Math.hypot(dx0, dy0);
+      const angle0 = Math.atan2(dy0, dx0);
+      const totalRotation = loops * 2 * Math.PI;
+
+      const clone = chipEl.cloneNode(true);
+      clone.style.position = 'fixed';
+      clone.style.margin = '0';
+      clone.style.zIndex = '9999';
+      clone.style.pointerEvents = 'none';
+      clone.style.bottom = 'auto';
+      clone.style.left = startX + 'px';
+      clone.style.top = startY + 'px';
+      document.body.appendChild(clone);
+      chipEl.style.visibility = 'hidden';
+
+      const duration = 800 + Math.random() * 250;
+      const start = performance.now();
+
+      function frame(now) {
+        const t = Math.min(1, (now - start) / duration);
+        const radius = radius0 * Math.pow(1 - t, 2);
+        const angle = angle0 + totalRotation * t;
+        const x = targetX + Math.cos(angle) * radius;
+        const y = targetY + Math.sin(angle) * radius;
+        clone.style.left = x + 'px';
+        clone.style.top = y + 'px';
+        clone.style.transform = `translate(-50%, -50%) scale(${1 - 0.6 * t})`;
+        clone.style.opacity = String(1 - Math.pow(t, 2));
+        if (t < 1) requestAnimationFrame(frame); else clone.remove();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function sinkChip(chipEl) {
+      chipEl.style.transition = 'bottom 1.2s cubic-bezier(0.4, 0, 1, 1), opacity 1.2s ease-in';
+      requestAnimationFrame(() => {
+        chipEl.style.bottom = '-46px';
+        chipEl.style.opacity = '0';
+      });
+    }
+
+    function buildWheelSvg() {
+      let pocketsMarkup = '';
+      WHEEL_ORDER.forEach((num, i) => {
+        const a0 = i * SEG_ANGLE;
+        const a1 = (i + 1) * SEG_ANGLE;
+        const L = (sfx === 'Rg' && sk.layout) ? sk.layout[i] : null;
+        const fill = colorHex[L ? L.c : colorOf(num)];
+        pocketsMarkup += `<path d="${wedgePath(a0, a1)}" fill="${fill}" stroke="#d8d8d2" stroke-width="0.6"/>`;
+        const t = L ? cellType(i) : null;
+        if (t) pocketsMarkup += `<path d="${wedgePath(a0, a1)}" fill="${t === 'gold' ? 'rgba(255,200,60,0.55)' : t === 'diamond' ? 'rgba(150,235,255,0.6)' : 'none'}" stroke="${t === 'silver' ? '#d3d9e2' : t === 'gold' ? '#ffd24a' : '#effcff'}" stroke-width="${t === 'silver' ? 1.8 : 1.2}"/>`;
+      });
+      els.pockets.innerHTML = pocketsMarkup;
+    }
+
+    function getBallRadii() {
+      const w = els.wheel.clientWidth;
+      return { outer: w / 2 - 13, inner: 0.28 * w };
+    }
+
+    function positionBall(angle, radius) {
+      els.ball.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${radius}px)`;
+    }
+
+    function positionBallStatic() {
+      positionBall(state.ballAngle, getBallRadii().outer);
+    }
+
+    function totalBet() {
+      return state.bets.rojo + state.bets.negro + state.bets.verde;
+    }
+
+    function pickBalancedTowerIndex(towers) {
+      const k = Math.min(3, towers.length);
+      let best = Math.floor(Math.random() * towers.length);
+      for (let i = 1; i < k; i++) {
+        const candidate = Math.floor(Math.random() * towers.length);
+        if (towers[candidate].length < towers[best].length) best = candidate;
+      }
+      return best;
+    }
+
+    function addChipToZone(zone, value) {
+      const towers = state.stacks[zone];
+      const slots = state.slotAssignments[zone];
+      const maxTowers = TOWER_SLOTS.length;
+      let towerIndex;
+      if (towers.length === 0) {
+        towerIndex = 0;
+        towers.push([]);
+        slots.push(pickSlot(slots));
+      } else {
+        const allTall = towers.every(tower => tower.length > 6);
+        const newTowerChance = allTall ? 0.5 : 0.05;
+        if (towers.length < maxTowers && Math.random() < newTowerChance) {
+          towerIndex = towers.length;
+          towers.push([]);
+          slots.push(pickSlot(slots));
+        } else {
+          towerIndex = pickBalancedTowerIndex(towers);
+        }
+      }
+      towers[towerIndex].push(value);
+    }
+
+    function pickSlot(usedSlots) {
+      if (usedSlots.length === 0) return ROW1_CENTER;
+      const row1Free = ROW1.filter(idx => !usedSlots.includes(idx));
+      const row2Free = ROW2.filter(idx => !usedSlots.includes(idx));
+      if (row1Free.length === 0) {
+        return row2Free[Math.floor(Math.random() * row2Free.length)];
+      }
+      if (row2Free.length === 0) {
+        return row1Free[Math.floor(Math.random() * row1Free.length)];
+      }
+      if (Math.random() < 0.7) {
+        return row1Free[Math.floor(Math.random() * row1Free.length)];
+      }
+      return row2Free[Math.floor(Math.random() * row2Free.length)];
+    }
+
+    function renderStack(zone) {
+      const container = stackEls[zone];
+      container.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      const towers = Array.isArray(state.stacks[zone]) ? state.stacks[zone] : [];
+      const slots = state.slotAssignments[zone] || [];
+      towers.forEach((tower, t) => {
+        const slotIndex = slots[t];
+        const slot = TOWER_SLOTS[slotIndex];
+        const rowBase = ROW1.includes(slotIndex) ? 1000 : 0;
+        tower.forEach((value, i) => {
+          const mini = document.createElement('div');
+          mini.className = 'mini-chip denom-' + value;
+          mini.style.bottom = (slot.bottom + i * 5) + 'px';
+          mini.style.left = `calc(${slot.left}% + ${(i % 2 === 0 ? -1 : 1) * 2}px)`;
+          mini.style.zIndex = String(rowBase + t * 10 + i);
+          fragment.appendChild(mini);
+        });
+      });
+      container.appendChild(fragment);
+    }
+
+    function updateUI() {
+      if (document.activeElement !== els.balanceValue) {
+        els.balanceValue.textContent = fmt(state.balance);
+      }
+      if (document.activeElement !== els.totalBetDisplay) {
+        els.totalBetDisplay.textContent = fmt(state.pendingAmount !== null ? state.pendingAmount : totalBet());
+      }
+
+      chipButtons.forEach(btn => {
+        const value = Number(btn.dataset.value);
+        btn.classList.toggle('selected', state.selectedChip === value);
+        btn.disabled = state.spinning || value > state.balance;
+      });
+
+      matElements.forEach(mat => {
+        mat.classList.toggle('disabled', state.spinning);
+      });
+
+      els.btnClear.disabled = state.spinning || totalBet() === 0;
+      els.btnAllIn.disabled = state.spinning || state.balance === 0;
+      // En Roguelike el saldo nunca se puede editar (solo cambia jugando o con el reinicio)
+      els.balanceValue.contentEditable = (sfx === 'Rg' || state.spinning || state.balanceLocked) ? 'false' : 'true';
+      els.totalBetDisplay.contentEditable = state.spinning ? 'false' : 'true';
+      if (goals) goals.render();
+    }
+
+    els.chips.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (!btn || state.spinning) return;
+      state.selectedChip = Number(btn.dataset.value);
+      state.pendingAmount = null;
+      updateUI();
+    });
+
+    els.mats.addEventListener('click', (e) => {
+      const matEl = e.target.closest('.mat');
+      if (!matEl || state.spinning) return;
+      const zone = matEl.dataset.zone;
+
+      if (state.pendingAmount) {
+        const amount = Math.min(state.pendingAmount, state.balance);
+        const { chips, achieved } = breakdownAmount(amount);
+        const allIn = amount >= state.balance;       // se apuesta todo el dinero
+        chips.forEach(value => {
+          addChipToZone(zone, value);
+          state.bets[zone] += value;
+        });
+        state.balance -= achieved;
+        if (allIn && state.balance > 0) {            // el resto que no se puede hacer con fichas (menos de 10) también va a la apuesta
+          state.bets[zone] += state.balance;
+          state.balance = 0;
+        }
+        state.pendingAmount = null;
+        renderStack(zone);
+        updateUI();
+        return;
+      }
+
+      if (!state.selectedChip) return;
+      if (state.selectedChip > state.balance) return;
+      state.bets[zone] += state.selectedChip;
+      addChipToZone(zone, state.selectedChip);
+      state.balance -= state.selectedChip;
+      renderStack(zone);
+      updateUI();
+    });
+
+    els.btnClear.addEventListener('click', () => {
+      if (state.spinning) return;
+      state.pendingAmount = null;
+      state.balance += totalBet();
+      state.bets = { rojo: 0, negro: 0, verde: 0 };
+      state.stacks = { rojo: [], negro: [], verde: [] };
+      state.slotAssignments = { rojo: [], negro: [], verde: [] };
+      ZONES.forEach(renderStack);
+      updateUI();
+    });
+
+    els.btnAllIn.addEventListener('click', () => {
+      if (state.spinning || state.balance === 0) return;
+      setPendingAmount(state.balance);
+    });
+
+    if (sfx === 'Rg' && els.btnReset) {
+      const doReset = () => {
+        state.spinning = false;
+        state.balance = 1000;
+        state.balanceLocked = false;
+        state.selectedChip = null;
+        state.pendingAmount = null;
+        state.bets = { rojo: 0, negro: 0, verde: 0 };
+        state.stacks = { rojo: [], negro: [], verde: [] };
+        state.slotAssignments = { rojo: [], negro: [], verde: [] };
+        state.rotation = 0;
+        state.ballAngle = 0;
+
+        els.wheel.style.transition = 'none';
+        els.ball.style.transition = 'none';
+        els.wheel.style.transform = 'rotate(0deg)';
+        positionBallStatic();
+        ZONES.forEach(renderStack);
+        if (goals) goals.reset();          // vuelve al objetivo 1 con 3 tiradas
+        updateUI();
+      };
+
+      // Reiniciar la run exige mantener pulsado el botón (evita accidentes)
+      const HOLD_MS = 1500;
+      let holdStart = 0, holdRaf = 0, holding = false;
+      const setHold = (v) => els.btnReset.style.setProperty('--hold', v.toFixed(3));
+      function holdTick(now) {
+        if (!holding) return;
+        const v = Math.min(1, (now - holdStart) / HOLD_MS);
+        setHold(v);
+        if (v >= 1) {
+          holding = false;
+          els.btnReset.classList.remove('holding');
+          els.btnReset.classList.add('done');
+          setTimeout(() => els.btnReset.classList.remove('done'), 500);
+          els.btnReset.dataset.go = '1';
+          els.btnReset.click();
+          setTimeout(() => setHold(0), 350);
+          return;
+        }
+        holdRaf = requestAnimationFrame(holdTick);
+      }
+      function holdBegin() {
+        if (holding || state.spinning) return;
+        holding = true;
+        holdStart = performance.now();
+        els.btnReset.classList.add('holding');
+        holdRaf = requestAnimationFrame(holdTick);
+      }
+      function holdCancel() {
+        if (!holding) return;
+        holding = false;
+        cancelAnimationFrame(holdRaf);
+        els.btnReset.classList.remove('holding');
+        setHold(0);
+      }
+      els.btnReset.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        if (els.btnReset.setPointerCapture) els.btnReset.setPointerCapture(e.pointerId);
+        holdBegin();
+      });
+      ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave', 'blur'].forEach(t => els.btnReset.addEventListener(t, holdCancel));
+      els.btnReset.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); holdBegin(); } });
+      els.btnReset.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') holdCancel(); });
+      els.btnReset.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      els.btnReset.addEventListener('click', () => {
+        if (els.btnReset.dataset.go !== '1') return;   // un clic suelto no reinicia: solo la pulsación larga
+        delete els.btnReset.dataset.go;
+        if (state.spinning) return;
+
+        // Mientras dura la animación se bloquea la interfaz (igual que al girar).
+        state.spinning = true;
+        updateUI();
+
+        // Sincronizamos exactamente con la animación del líquido del fondo (3200ms = 3.2s)
+        const RESET_DURATION = 3200;
+        const currentRotation = state.rotation || 0;
+
+        // Calculamos rotación en giros enteros (múltiplos de 360°) con desaceleración orgánica (easing)
+        const RESET_TURNS = 14;   // vueltas completas durante el reinicio (antes 4)
+        const targetRotation = Math.ceil(currentRotation / 360) * 360 + RESET_TURNS * 360;
+        const deltaRot = targetRotation - currentRotation;
+        state.rotation = targetRotation;
+
+        const easing = 'cubic-bezier(0.15, 0.68, 0.1, 1)';
+        els.wheel.style.transition = `transform ${RESET_DURATION}ms ${easing}`;
+        els.wheel.style.transform = `rotate(${state.rotation}deg)`;
+
+        // Hacemos que la bola acompañe el giro desacelerando al mismo tiempo
+        els.ball.style.transition = `transform ${RESET_DURATION}ms ${easing}`;
+        state.ballAngle = state.ballAngle + deltaRot;
+        positionBall(state.ballAngle, getBallRadii().outer);
+
+        const started = background.playReset(doReset);
+        if (!started) doReset();   // sin WebGL o con movimiento reducido: reinicio inmediato
+      });
+    }
+
+    if (lock) {
+      const LOCK_ICON_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.8"/></svg>';
+      const LOCK_ICON_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+      els.btnLockBalance.addEventListener('click', () => {
+        state.balanceLocked = !state.balanceLocked;
+        els.btnLockBalance.innerHTML = state.balanceLocked ? LOCK_ICON_CLOSED : LOCK_ICON_OPEN;
+        els.btnLockBalance.classList.toggle('locked', state.balanceLocked);
+        els.btnLockBalance.setAttribute('aria-pressed', String(state.balanceLocked));
+        els.btnLockBalance.title = state.balanceLocked ? 'Desbloquear edición del saldo' : 'Bloquear edición del saldo';
+        if (state.balanceLocked && document.activeElement === els.balanceValue) els.balanceValue.blur();
+        updateUI();
+      });
+    }
+
+    els.balanceValue.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); els.balanceValue.blur(); }
+    });
+    els.balanceValue.addEventListener('input', () => {
+      const digits = els.balanceValue.textContent.replace(/\D/g, '');
+      if (els.balanceValue.textContent !== digits) {
+        els.balanceValue.textContent = digits;
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(els.balanceValue);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+    els.balanceValue.addEventListener('blur', () => {
+      const digits = els.balanceValue.textContent.replace(/\D/g, '');
+      state.balance = digits ? parseInt(digits, 10) : 0;
+      els.balanceValue.textContent = fmt(state.balance);
+      updateUI();
+    });
+
+    function breakdownAmount(amount) {
+      let remaining = amount;
+      const chips = [];
+      DENOMS.forEach(d => {
+        while (remaining >= d) { chips.push(d); remaining -= d; }
+      });
+      return { chips, achieved: amount - remaining };
+    }
+
+    els.totalBetDisplay.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); els.totalBetDisplay.blur(); }
+    });
+    els.totalBetDisplay.addEventListener('input', () => {
+      const digits = els.totalBetDisplay.textContent.replace(/\D/g, '');
+      if (els.totalBetDisplay.textContent !== digits) {
+        els.totalBetDisplay.textContent = digits;
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(els.totalBetDisplay);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+    function setPendingAmount(amount) {
+      const typed = Math.max(0, Math.min(amount, state.balance));
+      state.pendingAmount = typed > 0 ? typed : null;
+      state.selectedChip = null;
+      updateUI();
+    }
+
+    els.totalBetDisplay.addEventListener('blur', () => {
+      if (state.spinning) { updateUI(); return; }
+      const digits = els.totalBetDisplay.textContent.replace(/\D/g, '');
+      const typed = digits ? parseInt(digits, 10) : 0;
+      setPendingAmount(typed);
+    });
+
+    function wheelCenter() {
+      const r = els.wheelWrap.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+
+    function spin() {
+      if (state.spinning) return;
+      if (totalBet() === 0) return;
+      if (goals && !goals.betOk()) return;      // Avaricia: apuesta mínima del 30%
+      state.spinning = true;
+      updateUI();
+      if (goals) goals.beginSpin();      // consume una tirada del objetivo actual
+
+      const index = Math.floor(Math.random() * WHEEL_ORDER.length);
+      const resultNumber = WHEEL_ORDER[index];
+      const resultColor = (goals && sk.layout) ? sk.layout[index].c : colorOf(resultNumber);
+      const duration = 4200;
+      background.trigger('SPIN', Object.assign(wheelCenter(), { duration }));
+
+      state.rotation = state.rotation + 6 * 360 + Math.random() * 360;
+      els.wheel.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.68, 0.1, 1)`;
+      els.wheel.style.transform = `rotate(${state.rotation}deg)`;
+
+      const pocketFinalAngle = (((index * SEG_ANGLE + SEG_ANGLE / 2) + state.rotation) % 360 + 360) % 360;
+      const ballCurrentMod = ((state.ballAngle % 360) + 360) % 360;
+      const ballStart = state.ballAngle;
+      const ballDelta = -(9 * 360 + ballCurrentMod - pocketFinalAngle);
+      const { outer, inner } = getBallRadii();
+      const startTime = performance.now();
+
+      function frame(now) {
+        const t = Math.min(1, (now - startTime) / duration);
+        const angleEase = 1 - Math.pow(1 - t, 4);
+        const angle = ballStart + ballDelta * angleEase;
+
+        let radius;
+        if (t < 0.55) {
+          radius = outer;
+        } else if (t < 0.85) {
+          const lt = (t - 0.55) / 0.30;
+          const eased = lt * lt * (3 - 2 * lt);
+          radius = outer + (inner - outer) * eased;
+        } else {
+          const lt = (t - 0.85) / 0.15;
+          const decay = Math.exp(-6 * lt);
+          const bounce = Math.sin(lt * Math.PI * 3) * 8 * decay;
+          radius = inner + bounce;
+        }
+
+        positionBall(angle, radius);
+
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          state.ballAngle = ballStart + ballDelta;
+          positionBall(state.ballAngle, inner);
+        }
+      }
+      requestAnimationFrame(frame);
+
+      setTimeout(() => {
+        const bet = state.bets[resultColor];
+        if (bet <= 0 && goals && goals.secondChance()) {   // Segunda oportunidad: no se pierde la apuesta y la ruleta vuelve a girar
+          state.spinning = false;
+          goals.undoSpin();
+          setTimeout(spin, 700);
+          return;
+        }
+        background.trigger(bet > 0 ? (resultColor === 'verde' ? 'JACKPOT' : 'WIN') : 'LOSE', wheelCenter());
+        let winnings = 0;
+        if (bet > 0) {
+          winnings = goals ? goals.calc(bet, resultColor, resultNumber, goals.spinBefore(), index) : (resultColor === 'verde' ? bet * 36 : bet * 2);
+          const winningChips = Array.from(stackEls[resultColor].querySelectorAll('.mini-chip'));
+          const loops = winningChips.length > 30 && Math.random() < 0.5 ? 2 : 1;
+          winningChips.forEach(chip => flyChipToBalance(chip, loops));
+        }
+        if (bet <= 0 && goals) winnings = goals.calc(0, resultColor, resultNumber, goals.spinBefore(), index);
+        ['rojo', 'negro', 'verde'].forEach(zone => {
+          if (zone === resultColor && bet > 0) return;
+          stackEls[zone].querySelectorAll('.mini-chip').forEach(sinkChip);
+        });
+
+        setTimeout(() => {
+          state.balance += winnings;
+          state.bets = { rojo: 0, negro: 0, verde: 0 };
+          state.stacks = { rojo: [], negro: [], verde: [] };
+          state.slotAssignments = { rojo: [], negro: [], verde: [] };
+          ZONES.forEach(renderStack);
+          state.spinning = false;
+          updateUI();
+          if (goals) goals.afterSpin();    // ¿objetivo conseguido? ¿sin tiradas?
+        }, 1350);
+      }, duration + 100);
+    }
+
+    els.wheelWrap.addEventListener('click', spin);
+
+    function positionChipButtons() {
+      const chipsBox = els.chips;
+      const chipsRect = chipsBox.getBoundingClientRect();
+      const chip25 = chipAnchors[25].getBoundingClientRect();
+      const chip10k = chipAnchors[10000].getBoundingClientRect();
+      const chip500m = chipAnchors[500000000].getBoundingClientRect();
+      const chip1b = chipAnchors[1000000000000].getBoundingClientRect();
+
+      const clearBtn = els.btnClear;
+      const allInBtn = els.btnAllIn;
+
+      const chip25CenterX = chip25.left + chip25.width / 2 - chipsRect.left;
+      const chip10kCenterX = chip10k.left + chip10k.width / 2 - chipsRect.left;
+      const row500mCenterY = chip500m.top + chip500m.height / 2 - chipsRect.top;
+      const row1bCenterY = chip1b.top + chip1b.height / 2 - chipsRect.top;
+
+      clearBtn.style.left = (chip25CenterX - clearBtn.offsetWidth / 2) + 'px';
+      clearBtn.style.top = (row500mCenterY - clearBtn.offsetHeight / 2) + 'px';
+
+      allInBtn.style.left = (chip10kCenterX - allInBtn.offsetWidth / 2) + 'px';
+      allInBtn.style.top = (row1bCenterY - allInBtn.offsetHeight / 2) + 'px';
+    }
+
+    buildWheelSvg();
+    positionBallStatic();
+    updateUI();
+    window.addEventListener('resize', positionBallStatic);
+    positionChipButtons();
+    window.addEventListener('resize', positionChipButtons);
+
+    instances[sfx] = { positionChipButtons, positionBallStatic };
+  }
+
+  const modeCorner = document.getElementById('modeCorner');
+  const modeIndicator = document.getElementById('modeIndicator');
+  const modeButtons = modeCorner.querySelectorAll('.mode-btn');
+
+  modeCorner.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn || btn.classList.contains('active')) return;
+    modeButtons.forEach(b => b.classList.toggle('active', b === btn));
+    document.body.classList.toggle('mode-roguelike', btn.dataset.mode === 'roguelike');
+    background.setMode(btn.dataset.mode === 'roguelike' ? 'roguelike' : 'ruleta');
+    const active = instances[btn.dataset.mode === 'roguelike' ? 'Rg' : ''];
+    if (active) {
+      requestAnimationFrame(() => {
+        active.positionChipButtons();
+        active.positionBallStatic();
+      });
+    }
+    moveModeIndicator(btn);
+    modeCorner.classList.remove('pulsing');
+    void modeCorner.offsetWidth;
+    modeCorner.classList.add('pulsing');
+  });
+
+  function moveModeIndicator(btn) {
+    const cornerRect = modeCorner.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    modeIndicator.style.setProperty('--ind-w', btnRect.width + 'px');
+    modeIndicator.style.setProperty('--ind-h', btnRect.height + 'px');
+    modeIndicator.style.setProperty('--ind-x', (btnRect.left - cornerRect.left - 4) + 'px');
+  }
+  const activeModeButton = () => modeCorner.querySelector('.mode-btn.active');
+  moveModeIndicator(activeModeButton());
+  window.addEventListener('resize', () => moveModeIndicator(activeModeButton()));
+
+  initRoulette('', { lock: true, colorHex: { rojo: '#c0392b', negro: '#1c1c1c', verde: '#1e6b4f' } });
+  initRoulette('Rg', { lock: false, colorHex: { rojo: '#e0473a', negro: '#1c1414', verde: '#1e6b4f' } });
+})();
+</script>
+
+<svg id="crtSvg" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="crtFilter" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="1000" height="700">
+    <!-- mapas de desplazamiento (curvatura + aberración radial); los genera el JS -->
+    <feImage id="crtMapR" x="0" y="0" width="1000" height="700" preserveAspectRatio="none" result="mapR"/>
+    <feImage id="crtMapG" x="0" y="0" width="1000" height="700" preserveAspectRatio="none" result="mapG"/>
+    <feImage id="crtMapB" x="0" y="0" width="1000" height="700" preserveAspectRatio="none" result="mapB"/>
+    <!-- cada canal de color se desplaza un poco distinto: aberración cromática que crece hacia los bordes -->
+    <feDisplacementMap id="crtDispR" in="SourceGraphic" in2="mapR" scale="0" xChannelSelector="R" yChannelSelector="G" result="dR"/>
+    <feColorMatrix in="dR" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cR"/>
+    <feDisplacementMap id="crtDispG" in="SourceGraphic" in2="mapG" scale="0" xChannelSelector="R" yChannelSelector="G" result="dG"/>
+    <feColorMatrix in="dG" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cG"/>
+    <feDisplacementMap id="crtDispB" in="SourceGraphic" in2="mapB" scale="0" xChannelSelector="R" yChannelSelector="G" result="dB"/>
+    <feColorMatrix in="dB" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="cB"/>
+    <feComposite in="cR" in2="cG" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="rg"/>
+    <feComposite in="rg" in2="cB" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="rgb"/>
+    <!-- desenfoque suave: los píxeles se mezclan un poco entre sí -->
+    <feGaussianBlur id="crtBlurSoft" in="rgb" stdDeviation="0.05" result="soft"/>
+    <feComposite id="crtMix" in="rgb" in2="soft" operator="arithmetic" k1="0" k2="1" k3="0" k4="0" result="mix"/>
+    <!-- bloom: solo las zonas muy brillantes sueltan un halo -->
+    <feComponentTransfer in="soft" result="hi">
+      <feFuncR type="linear" slope="2.4" intercept="-1.3"/>
+      <feFuncG type="linear" slope="2.4" intercept="-1.3"/>
+      <feFuncB type="linear" slope="2.4" intercept="-1.3"/>
+    </feComponentTransfer>
+    <feGaussianBlur id="crtBlurBloom" in="hi" stdDeviation="0.1" result="bloom"/>
+    <feComposite id="crtAdd" in="mix" in2="bloom" operator="arithmetic" k1="0" k2="1" k3="0" k4="0" result="lit"/>
+    <!-- colores vivos -->
+    <feColorMatrix id="crtSat" in="lit" type="saturate" values="1"/>
+  </filter>
+</svg>
+<div class="crt-overlay" id="crtOverlay" aria-hidden="true">
+  <div class="crt-scan"></div>
+  <div class="crt-grain" id="crtGrain"></div>
+  <div class="crt-vignette"></div>
+  <div class="crt-bezel"></div>
+</div>
+<script>
+(function () {
+  const root = document.documentElement;
+  const $ = (id) => document.getElementById(id);
+  const frame = $('crtFrame');
+  const btn = $('btnSettings');
+  const drop = $('crtDrop');
+  const slider = $('crtSlider');
+  const fill = $('crtFill');
+  const valueEl = $('crtValue');
+  const modeCorner = $('modeCorner');
+
+  // ---- desplegable: mide exactamente lo mismo que el botón de ajustes + el selector Ruleta/Roguelike ----
+  function layout() {
+    const a = btn.getBoundingClientRect();
+    const b = modeCorner.getBoundingClientRect();
+    drop.style.setProperty('--crt-span', (b.right - a.left) + 'px');
+    drop.style.setProperty('--crt-top', (b.bottom + 8) + 'px');
+    drop.style.left = a.left + 'px';
+    const sd = $('statsDrop');
+    sd.style.setProperty('--crt-span', drop.style.getPropertyValue('--crt-span'));
+    sd.style.setProperty('--crt-top', drop.style.getPropertyValue('--crt-top'));
+    sd.style.left = a.left + 'px';
+  }
+  function setOpen(open) {
+    if (open) layout();
+    drop.classList.toggle('open', open);
+    $('statsDrop').classList.toggle('open', open);
+    if (!open) { $('statsList').hidden = true; $('statsBtn').setAttribute('aria-expanded', 'false'); }
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  // ---- filtro CRT ----
+  const K_MAX = 0.022;     // curvatura máxima (el centro se "abomba" ~2 %; las esquinas no se mueven)
+  const RHO = 0.12;        // aberración cromática relativa: rojo y azul se separan ±12 % de ese desplazamiento
+  const maps = { R: $('crtMapR'), G: $('crtMapG'), B: $('crtMapB') };
+  const disp = [$('crtDispR'), $('crtDispG'), $('crtDispB')];
+  const filterEl = $('crtFilter');
+  let W = 0, H = 0, Rd = 1, builtFor = '';
+
+  function buildMap(rho, w, h) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    const clamp = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) {
+        const px = ((i + 0.5) / w - 0.5) * W;
+        const py = ((j + 0.5) / h - 0.5) * H;
+        const q = (px * px + py * py) / (Rd * Rd);      // 0 en el centro, 1 en las esquinas
+        const f = q - 1 + rho;
+        const k = (j * w + i) * 4;
+        img.data[k]     = clamp(0.5 + (px / Rd) * f);   // R = desplazamiento en x
+        img.data[k + 1] = clamp(0.5 + (py / Rd) * f);   // G = desplazamiento en y
+        img.data[k + 2] = 128;
+        img.data[k + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL('image/png');
+  }
+
+  function ensureFilter() {
+    const r = frame.getBoundingClientRect();
+    W = Math.max(1, Math.round(r.width));
+    H = Math.max(1, Math.round(r.height));
+    Rd = Math.hypot(W, H) / 2;
+    const key = W + 'x' + H;
+    if (key === builtFor) return;
+    builtFor = key;
+    filterEl.setAttribute('width', W);
+    filterEl.setAttribute('height', H);
+    const w = 160, h = Math.max(48, Math.round(160 * H / W));
+    const urls = { R: buildMap(+RHO, w, h), G: buildMap(0, w, h), B: buildMap(-RHO, w, h) };
+    for (const ch of ['R', 'G', 'B']) {
+      const el = maps[ch];
+      el.setAttribute('width', W);
+      el.setAttribute('height', H);
+      el.setAttribute('href', urls[ch]);
+      el.setAttributeNS('http://www.w3.org/1999/xlink', 'href', urls[ch]);
+    }
+  }
+
+  // grano analógico: un mosaico de ruido fino que el CSS desplaza a saltos
+  (function makeGrain() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(128, 128);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.floor(Math.random() * 256);
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    $('crtGrain').style.backgroundImage = 'url(' + c.toDataURL('image/png') + ')';
+  })();
+
+  function setAttr(id, name, value) { $(id).setAttribute(name, value); }
+
+  function applyCrt() {
+    const v = Number(slider.value) || 0;
+    const t = v / 100;
+    valueEl.textContent = v;
+    fill.style.setProperty('--pct', v);
+    fill.classList.toggle('zero', v === 0);
+    root.style.setProperty('--crt', t.toFixed(3));
+    root.classList.toggle('crt-on', v > 0);        // con 0 no hay ningún efecto: el juego queda como estaba
+    background.setPixelSize(1 + 13 * t);           // cuanto más CRT, más se pixela solo el fondo líquido
+    if (v === 0) return;
+
+    ensureFilter();
+    const scale = (K_MAX * t * Rd).toFixed(3);
+    disp.forEach((el) => el.setAttribute('scale', scale));
+    const mix = 0.34 * t;                           // cuánto se mezcla la versión desenfocada
+    setAttr('crtBlurSoft', 'stdDeviation', Math.max(0.05, 1.0 * t).toFixed(2));
+    setAttr('crtMix', 'k2', (1 - mix).toFixed(3));
+    setAttr('crtMix', 'k3', mix.toFixed(3));
+    setAttr('crtBlurBloom', 'stdDeviation', Math.max(0.1, 6 * t).toFixed(2));
+    setAttr('crtAdd', 'k3', (0.32 * t).toFixed(3));  // intensidad del bloom
+    setAttr('crtSat', 'values', (1 + 0.14 * t).toFixed(3));   // colores un poco más vivos
+  }
+
+  // estadísticas
+  const fmtStat = (n) => {
+    if (n < 1e6) return n.toLocaleString('es-ES');
+    const es = (x) => x.toLocaleString('es-ES', { maximumFractionDigits: 2 });
+    return n >= 1e12 ? es(n / 1e12) + (n === 1e12 ? ' billón' : ' billones') : es(n / 1e6) + ' millones';
+  };
+  function refreshStats(d) {
+    $('stGoal').textContent = d.goal ? d.goal + ' · ' + fmtStat(d.goalTarget) + ' €' : '–';
+    $('stMoney').textContent = d.money ? fmtStat(d.money) + ' €' : '–';
+    $('stWin').textContent = d.win ? fmtStat(d.win) + ' €' : '–';
+  }
+  GameStats.onChange(refreshStats);
+  refreshStats(GameStats.data());
+  $('statsBtn').addEventListener('click', () => {
+    const l = $('statsList');
+    l.hidden = !l.hidden;
+    $('statsBtn').setAttribute('aria-expanded', String(!l.hidden));
+  });
+
+  btn.setAttribute('aria-haspopup', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.addEventListener('click', () => setOpen(!drop.classList.contains('open')));
+  slider.addEventListener('input', applyCrt);
+  document.addEventListener('pointerdown', (e) => {
+    if (!drop.classList.contains('open')) return;
+    if (drop.contains(e.target) || btn.contains(e.target) || $('statsDrop').contains(e.target)) return;
+    setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drop.classList.contains('open')) { setOpen(false); btn.focus(); }
+  });
+  let rz = 0;
+  window.addEventListener('resize', () => {
+    layout();
+    clearTimeout(rz);
+    rz = setTimeout(() => { if (Number(slider.value) > 0) applyCrt(); }, 120);
+  });
+  layout();
+  applyCrt();
+})();
+</script>
+</body></html>
